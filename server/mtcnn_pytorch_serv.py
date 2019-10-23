@@ -19,8 +19,15 @@ def after_request(response):
     return response
 
 
-@app.route('/')
-def index():
+@app.route('/test')
+def test():
+    if (os.name == 'posix'):
+        handler = RotatingFileHandler('/home/mesg.log', maxBytes=10000, backupCount=1)
+    if (os.name == 'nt'):
+        handler = RotatingFileHandler('C:\Telesens\web\\faceRec\client\mesg.log', maxBytes=10000, backupCount=1)
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addHandler(handler)
+    app.logger.info('successfully created log file')
     return Response('MTCNN Face Detection')
 
 
@@ -32,7 +39,7 @@ def local():
 @app.route('/init')
 def init():
     if (os.name == 'posix'):
-        handler = RotatingFileHandler('/home/bitnami/apps/faceRec/mesg.log', maxBytes=10000, backupCount=1)
+        handler = RotatingFileHandler('/home/mesg.log', maxBytes=10000, backupCount=1)
     if (os.name == 'nt'):
         handler = RotatingFileHandler('C:\Telesens\web\\faceRec\client\mesg.log', maxBytes=10000, backupCount=1)
     app.logger.setLevel(logging.DEBUG)

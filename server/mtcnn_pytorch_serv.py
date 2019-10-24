@@ -4,12 +4,22 @@ from PIL import Image
 from flask import Flask, request, Response, jsonify
 sys.path.insert(0, os.path.abspath("."))
 from models.mtcnn import MTCNN
+import config
 import cv2
 import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
 app = Flask(__name__)
 cache = {}
+
+if (os.name == 'nt'):
+    cfg = config.win_cfg
+else:
+    cfg = config.ubuntu_cfg
+
+
+handler = RotatingFileHandler(cfg['log_file'], maxBytes=10000, backupCount=1)
+
 # for CORS
 @app.after_request
 def after_request(response):
@@ -21,10 +31,6 @@ def after_request(response):
 
 @app.route('/test')
 def test():
-    if (os.name == 'posix'):
-        handler = RotatingFileHandler('/home/mesg.log', maxBytes=10000, backupCount=1)
-    if (os.name == 'nt'):
-        handler = RotatingFileHandler('C:\Telesens\web\\faceRec\client\mesg.log', maxBytes=10000, backupCount=1)
     app.logger.setLevel(logging.DEBUG)
     app.logger.addHandler(handler)
     app.logger.info('successfully created log file')
@@ -38,10 +44,6 @@ def local():
 
 @app.route('/init')
 def init():
-    if (os.name == 'posix'):
-        handler = RotatingFileHandler('/home/mesg.log', maxBytes=10000, backupCount=1)
-    if (os.name == 'nt'):
-        handler = RotatingFileHandler('C:\Telesens\web\\faceRec\client\mesg.log', maxBytes=10000, backupCount=1)
     app.logger.setLevel(logging.DEBUG)
     app.logger.addHandler(handler)
     try:
@@ -62,7 +64,7 @@ def detect(proc_id):
         # Set an image confidence threshold value to limit returned data
         threshold = request.form.get('threshold')
         if threshold is None:
-            threshold = 0.5
+            threshold = cfg['faceDetThreshold']
         else:
             threshold = float(threshold)
 
@@ -94,7 +96,8 @@ def detect(proc_id):
 
 if __name__ == '__main__':
 	# without SSL
-    app.run(debug=True, host='0.0.0.0')
-
-	# with SSL
-    #app.run(debug=True, host='0.0.0.0', ssl_context=('ssl/server.crt', 'ssl/server.key'))
+    if (os.name == 'nt'):
+        app.run(debug=True, host='0.0.0.0')
+    # on ubuntu run with ssl
+    else:
+        app.run(debug=True, host='0.0.0.0', ssl_context=(cfg['ssl_crt'], cfg['ssl_key']))

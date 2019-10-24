@@ -3,7 +3,7 @@ cfg = {
 }
 
 ubuntu_cfg = cfg.copy()
-ubuntu_cfg['log_file'] = '/home/dev/faceRec/server/mesg.log'
+ubuntu_cfg['log_file'] = '/home/ubuntu/dev/faceRec/server/mesg.log'
 ubuntu_cfg['ssl_crt'] = 'ssl/faceRec.crt'
 ubuntu_cfg['ssl_key'] = 'ssl/faceRec.key'
 

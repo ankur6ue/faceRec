@@ -1,6 +1,5 @@
 import os
 import sys
-from PIL import Image
 from flask import Flask, request, Response, jsonify
 sys.path.insert(0, os.path.abspath("."))
 from models.mtcnn import MTCNN
@@ -9,7 +8,7 @@ import cv2
 import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
-app = Flask(__name__)
+application = Flask(__name__)
 cache = {}
 
 if (os.name == 'nt'):
@@ -21,7 +20,7 @@ else:
 handler = RotatingFileHandler(cfg['log_file'], maxBytes=10000, backupCount=1)
 
 # for CORS
-@app.after_request
+@application.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
@@ -29,33 +28,33 @@ def after_request(response):
     return response
 
 
-@app.route('/test')
+@application.route('/test')
 def test():
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addHandler(handler)
-    app.logger.info('successfully created log file')
+    application.logger.setLevel(logging.DEBUG)
+    application.logger.addHandler(handler)
+    application.logger.info('successfully created log file')
     return Response('MTCNN Face Detection')
 
 
-@app.route('/local')
+@application.route('/local')
 def local():
     return Response(open('./static/local.html').read(), mimetype="text/html")
 
 
-@app.route('/init')
+@application.route('/init')
 def init():
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addHandler(handler)
+    application.logger.setLevel(logging.DEBUG)
+    application.logger.addHandler(handler)
     try:
         device = 'cpu'
         mtcnn = MTCNN(keep_all=True, device=device)
         cache['mtcnn'] = mtcnn
         return Response('successfully initialized openvino')
     except Exception as e:
-        app.logger.info('openvino initialization error: %e' % e)
+        application.logger.info('openvino initialization error: %e' % e)
         return e
 
-@app.route('/detect/<proc_id>', methods=['POST'])
+@application.route('/detect/<proc_id>', methods=['POST'])
 def detect(proc_id):
     try:
         image_file = request.files['image']  # get the image
@@ -84,7 +83,7 @@ def detect(proc_id):
                     object['y'] = float(box[1])
                     object['width'] = float(box[2]-box[0])
                     object['height'] = float(box[3]-box[1])
-                    objects.append(object)
+                    objects.applicationend(object)
 
         object_data["objects"] = objects
         return jsonify(object_data)
@@ -97,7 +96,8 @@ def detect(proc_id):
 if __name__ == '__main__':
 	# without SSL
     if (os.name == 'nt'):
-        app.run(debug=True, host='0.0.0.0')
+        application.run(debug=True, host='0.0.0.0')
     # on ubuntu run with ssl
     else:
-        app.run(debug=True, host='0.0.0.0', ssl_context=(cfg['ssl_crt'], cfg['ssl_key']))
+#        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg['ssl_crt'], cfg['ssl_key']))
+        application.run(debug=True, host='0.0.0.0')

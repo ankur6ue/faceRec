@@ -19,7 +19,7 @@ var procType = "gpu"
 if (hostType == 'localhost')
 	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
 else
-	apiServer = "https://3.87.199.40:5000"
+	apiServer = "https://telesens.co/face_det"
 
 //Video element selector
 v = document.getElementById(sourceVideo);

@@ -83,7 +83,7 @@ def detect(proc_id):
                     object['y'] = float(box[1])
                     object['width'] = float(box[2]-box[0])
                     object['height'] = float(box[3]-box[1])
-                    objects.applicationend(object)
+                    objects.append(object)
 
         object_data["objects"] = objects
         return jsonify(object_data)

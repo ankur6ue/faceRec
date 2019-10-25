@@ -11,6 +11,6 @@ RUN mkdir -p /home/ubuntu/dev/faceRec/server
 ADD mtcnn_pytorch_serv.py /home/ubuntu/dev/faceRec/server
 ADD config.py /home/ubuntu/dev/faceRec/server
 COPY models /home/ubuntu/dev/faceRec/server/models
-COPY ssl /home/ubuntu/dev/faceRec/server/ssl
+COPY data /home/ubuntu/dev/faceRec/server/data
 WORKDIR /home/ubuntu/dev/faceRec/server/
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "mtcnn_pytorch_serv"]

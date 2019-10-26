@@ -1,0 +1,68 @@
+[Fri Oct 25 20:24:03.605425 2019] [core:crit] [pid 18645:tid 140565606582016] AH00136: Server MUST relinquish startup privileges before accepting connections.  Please ensure mod_unixd or other system security module is loaded.
+AH00016: Configuration Failed
+[Fri Oct 25 21:14:01.031263 2019] [core:crit] [pid 18976:tid 140627603515136] AH00136: Server MUST relinquish startup privileges before accepting connections.  Please ensure mod_unixd or other system security module is loaded.
+AH00016: Configuration Failed
+[Fri Oct 25 21:21:54.545424 2019] [core:crit] [pid 19026:tid 140308882446080] AH00136: Server MUST relinquish startup privileges before accepting connections.  Please ensure mod_unixd or other system security module is loaded.
+AH00016: Configuration Failed
+[Fri Oct 25 21:26:43.630089 2019] [core:crit] [pid 19068:tid 140040731371264] AH00136: Server MUST relinquish startup privileges before accepting connections.  Please ensure mod_unixd or other system security module is loaded.
+AH00016: Configuration Failed
+[Fri Oct 25 21:33:45.175966 2019] [proxy_balancer:emerg] [pid 20340:tid 139813012616960] AH01177: Failed to lookup provider 'shm' for 'slotmem': is mod_slotmem_shm loaded??
+[Fri Oct 25 21:33:45.176046 2019] [:emerg] [pid 20340:tid 139813012616960] AH00020: Configuration Failed, exiting
+[Fri Oct 25 21:35:14.475038 2019] [mpm_event:notice] [pid 20356:tid 139908836067072] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 21:35:14.475215 2019] [core:notice] [pid 20356:tid 139908836067072] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apache2/conf/httpd.conf -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 21:37:07.307097 2019] [proxy:error] [pid 20357:tid 139908576417536] [client 127.0.0.1:48944] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 21:57:56.824608 2019] [proxy:error] [pid 20359:tid 139908500883200] [client 127.0.0.1:49088] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 22:47:00.922876 2019] [mpm_event:notice] [pid 22472:tid 139747574085376] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 22:47:00.923015 2019] [core:notice] [pid 22472:tid 139747574085376] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 22:47:41.357699 2019] [mpm_event:notice] [pid 22472:tid 139747574085376] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 22:48:00.264375 2019] [mpm_event:notice] [pid 22615:tid 140640903657216] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 22:48:00.264504 2019] [core:notice] [pid 22615:tid 140640903657216] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 22:48:19.649076 2019] [proxy:error] [pid 22617:tid 140640820848384] [client 127.0.0.1:49250] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 22:57:53.904590 2019] [mpm_event:notice] [pid 22615:tid 140640903657216] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 22:57:59.279434 2019] [mpm_event:notice] [pid 22822:tid 140462395660032] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 22:57:59.279570 2019] [core:notice] [pid 22822:tid 140462395660032] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 22:58:11.180202 2019] [proxy:error] [pid 22825:tid 140462165829376] [client 127.0.0.1:49276] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 23:01:34.273609 2019] [mpm_event:notice] [pid 22822:tid 140462395660032] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:01:38.329142 2019] [mpm_event:notice] [pid 22972:tid 139627879454464] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:01:38.329279 2019] [core:notice] [pid 22972:tid 139627879454464] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 23:01:45.964740 2019] [authz_core:error] [pid 22974:tid 139627796645632] [client 127.0.0.1:49300] AH01630: client denied by server configuration: /bitnami, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 23:06:54.515465 2019] [mpm_event:notice] [pid 22972:tid 139627879454464] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:06:58.571695 2019] [mpm_event:notice] [pid 23121:tid 140473041221376] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:06:58.571823 2019] [core:notice] [pid 23121:tid 140473041221376] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 23:07:59.847422 2019] [mpm_event:notice] [pid 23121:tid 140473041221376] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:08:03.902806 2019] [mpm_event:notice] [pid 23251:tid 139631236478720] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:08:03.902940 2019] [core:notice] [pid 23251:tid 139631236478720] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 23:08:11.260486 2019] [proxy:error] [pid 23256:tid 139630980585216] [client 127.0.0.1:49324] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 23:14:17.064280 2019] [mpm_event:notice] [pid 23251:tid 139631236478720] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:14:21.121848 2019] [mpm_event:notice] [pid 23419:tid 140246736570112] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:14:21.121985 2019] [core:notice] [pid 23419:tid 140246736570112] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 23:14:30.584795 2019] [proxy:error] [pid 23421:tid 140246486333184] [client 127.0.0.1:49364] AH00898: DNS lookup failure for: 127.0.0.1:5000init returned by /init, referer: https://telesens.co/faceRec/local.html
+[Fri Oct 25 23:18:38.122995 2019] [mpm_event:notice] [pid 23419:tid 140246736570112] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:18:42.183142 2019] [mpm_event:notice] [pid 23571:tid 139974790969088] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:18:42.183285 2019] [core:notice] [pid 23571:tid 139974790969088] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Fri Oct 25 23:19:20.029061 2019] [mpm_event:notice] [pid 23571:tid 139974790969088] AH00491: caught SIGTERM, shutting down
+[Fri Oct 25 23:19:41.847116 2019] [mpm_event:notice] [pid 23747:tid 140321416242944] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Fri Oct 25 23:19:41.847254 2019] [core:notice] [pid 23747:tid 140321416242944] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Sat Oct 26 14:05:44.897547 2019] [mpm_event:notice] [pid 23747:tid 140321416242944] AH00491: caught SIGTERM, shutting down
+[Sat Oct 26 14:06:07.997322 2019] [proxy:crit] [pid 29956:tid 140124425221888] AH02432: Cannot find LB Method: byrequests
+[Sat Oct 26 14:06:07.997387 2019] [proxy_balancer:emerg] [pid 29956:tid 140124425221888] (22)Invalid argument: AH01183: Cannot share balancer
+[Sat Oct 26 14:06:07.997400 2019] [:emerg] [pid 29956:tid 140124425221888] AH00020: Configuration Failed, exiting
+[Sat Oct 26 14:13:52.849027 2019] [proxy:crit] [pid 30049:tid 140265105872640] AH02432: Cannot find LB Method: byrequests
+[Sat Oct 26 14:13:52.849092 2019] [proxy_balancer:emerg] [pid 30049:tid 140265105872640] (22)Invalid argument: AH01183: Cannot share balancer
+[Sat Oct 26 14:13:52.849107 2019] [:emerg] [pid 30049:tid 140265105872640] AH00020: Configuration Failed, exiting
+[Sat Oct 26 14:17:16.289099 2019] [proxy:crit] [pid 30111:tid 139754145670912] AH02432: Cannot find LB Method: byrequests
+[Sat Oct 26 14:17:16.289168 2019] [proxy_balancer:emerg] [pid 30111:tid 139754145670912] (22)Invalid argument: AH01183: Cannot share balancer
+[Sat Oct 26 14:17:16.289181 2019] [:emerg] [pid 30111:tid 139754145670912] AH00020: Configuration Failed, exiting
+[Sat Oct 26 14:21:03.667184 2019] [lbmethod_heartbeat:notice] [pid 30166:tid 139782164018944] AH02282: No slotmem from mod_heartmonitor
+[Sat Oct 26 14:21:03.671679 2019] [mpm_event:notice] [pid 30166:tid 139782164018944] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Sat Oct 26 14:21:03.675130 2019] [core:notice] [pid 30166:tid 139782164018944] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Sat Oct 26 14:21:36.547400 2019] [proxy:warn] [pid 30200:tid 139781883242240] [client 127.0.0.1:53890] AH01144: No protocol handler was valid for the URL /init (scheme 'balancer'). If you are using a DSO version of mod_proxy, make sure the proxy submodules are included in the configuration using LoadModule., referer: https://telesens.co/faceRec/local.html
+[Sat Oct 26 14:26:36.958616 2019] [mpm_event:notice] [pid 30166:tid 139782164018944] AH00491: caught SIGTERM, shutting down
+[Sat Oct 26 14:26:41.012937 2019] [lbmethod_heartbeat:notice] [pid 30317:tid 140411083872000] AH02282: No slotmem from mod_heartmonitor
+[Sat Oct 26 14:26:41.014363 2019] [mpm_event:notice] [pid 30317:tid 140411083872000] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Sat Oct 26 14:26:41.014409 2019] [core:notice] [pid 30317:tid 140411083872000] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Sat Oct 26 14:29:33.211514 2019] [mpm_event:notice] [pid 30317:tid 140411083872000] AH00491: caught SIGTERM, shutting down
+[Sat Oct 26 14:29:37.267673 2019] [lbmethod_heartbeat:notice] [pid 30575:tid 139899764541184] AH02282: No slotmem from mod_heartmonitor
+[Sat Oct 26 14:29:37.268883 2019] [mpm_event:notice] [pid 30575:tid 139899764541184] AH00489: Apache/2.4.33 (Unix) configured -- resuming normal operations
+[Sat Oct 26 14:29:37.268921 2019] [core:notice] [pid 30575:tid 139899764541184] AH00094: Command line: '/opt/bitnami/apache2/bin/httpd.bin -f /opt/bitnami/apps/faceRec/proxy-apache-conf/httpd-proxy.conf'
+[Sat Oct 26 14:29:52.990115 2019] [mpm_event:notice] [pid 30575:tid 139899764541184] AH00491: caught SIGTERM, shutting down

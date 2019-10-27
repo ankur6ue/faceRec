@@ -1,3 +1,10 @@
+# for this project#
+/logs/*
+server/config.py
+server/config_ec2_cluster.py
+server/paramiko_test.py
+proxy-apache-conf/cluster_ip.conf
+
 # Compiled source #
 ###################
 *.com
@@ -25,7 +32,6 @@
 *.log
 *.sql
 *.sqlite
-proxy-apache-conf/logs/*
 
 # OS generated files #
 ######################

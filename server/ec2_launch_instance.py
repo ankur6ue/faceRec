@@ -1,4 +1,5 @@
 import boto3
+import os
 import config_ec2_cluster as cfg
 from ssh_utils import exec_shell_command, create_instances, write_cluster_ip_conf
 
@@ -12,8 +13,9 @@ num_instances = 3
 login_github = 'docker login docker.pkg.github.com -u ' + cfg.github_cfg['user_name'] + ' ' + '-p ' + \
                cfg.github_cfg['token']
 pull_container = 'docker pull ' + cfg.ec2_cluster_cfg['container_name']
+stop_containers = 'docker stop $(docker ps -a -q)'
 run_container = 'docker container run -t -i -d -p 5000:5000 ' + cfg.ec2_cluster_cfg['container_name']
-cmd = login_github + ';' + pull_container + ';' + run_container
+cmd = login_github + ';' + pull_container + ';' + stop_containers + ';' + run_container
 
 # check if a EC2 instances is already running, if not create an instance
 running_instances = ec2.instances.filter(
@@ -65,10 +67,14 @@ else:
     # server 2..
 </Proxy>    
 """
-if num_running_instances == num_instances:
+if num_running_instances >= num_instances:
     print("writing instances ip to cluster config (cluster_ip.conf)")
-    write_cluster_ip_conf(running_instances)
+    write_cluster_ip_conf(cfg.ec2_cluster_cfg['cluster_ip_conf_path'], running_instances)
     print("restarting apache proxy")
+    stream = os.popen('sudo ./../proxy-apache-conf/ctlscript.sh restart apache')
+    output = stream.read()
+    print(output)
+    
 
 print('done')
 

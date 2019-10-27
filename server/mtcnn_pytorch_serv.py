@@ -49,17 +49,19 @@ def init():
         device = 'cpu'
         mtcnn = MTCNN(keep_all=True, device=device)
         cache['mtcnn'] = mtcnn
-        return Response('successfully initialized openvino')
+        return Response('successfully initialized MTCNN')
     except Exception as e:
-        application.logger.info('openvino initialization error: %e' % e)
+        application.logger.info('MTCNN initialization error: %e' % e)
         return e
 
 @application.route('/detect/<proc_id>', methods=['POST'])
 def detect(proc_id):
     try:
         image_file = request.files['image']  # get the image
+        if 'mtcnn' not in cache: # run init
+            init()        
         mtcnn = cache['mtcnn']
-
+        
         # Set an image confidence threshold value to limit returned data
         threshold = request.form.get('threshold')
         if threshold is None:

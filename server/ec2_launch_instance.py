@@ -38,19 +38,21 @@ else:
     num_stopped_instances = len(stopped_instance_list)
     # start the stopped instances and add to running instances list
     ec2_client.start_instances(InstanceIds=stopped_instance_ids)
-    waiter = ec2_client.get_waiter('instance_running')
+    # checking for instance_status_ok is more reliable than instance_ready
+    # because the instance is sure to be ready. If we only wait for instance_ready
+    # ssh can sometimes fail. 
+    waiter = ec2_client.get_waiter('instance_status_ok')
     waiter.wait(InstanceIds=stopped_instance_ids, WaiterConfig={
-        'Delay': 2,
-        'MaxAttempts': 100
+        'Delay': 5,
+        'MaxAttempts': 1000
     })
     # now all instances should be running
     running_instances = ec2.instances.filter(
         Filters=[{'Name': 'instance-state-name', 'Values': ['running']},
                  {'Name': 'instance-type', 'Values': ['t2.micro']}])
     # create list of instances
-    for instance in running_instances:
-        print(instance.id, instance.instance_type, instance.public_ip_address)
-        running_instance_list.append(instance)
+    running_instance_list = [instance for instance in running_instances]
+    num_running_instances = len(running_instance_list)
 
     num_running_instances = len(running_instance_list)
     if num_running_instances >= num_instances: # we have enough running instances, we can run the container

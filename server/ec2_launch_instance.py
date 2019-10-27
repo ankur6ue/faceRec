@@ -1,5 +1,6 @@
 import boto3
 import os
+import time
 import config_ec2_cluster as cfg
 from ssh_utils import exec_shell_command, create_instances, write_cluster_ip_conf
 
@@ -36,14 +37,27 @@ else:
     stopped_instance_ids = [instance.id for instance in stopped_instances]
     num_stopped_instances = len(stopped_instance_list)
     # start the stopped instances and add to running instances list
-    instances = ec2_client.start_instances(InstanceIds=stopped_instance_ids)
-    running_instance_list.append(instances)
+    ec2_client.start_instances(InstanceIds=stopped_instance_ids)
+    waiter = ec2_client.get_waiter('instance_running')
+    waiter.wait(InstanceIds=stopped_instance_ids, WaiterConfig={
+        'Delay': 2,
+        'MaxAttempts': 100
+    })
+    # now all instances should be running
+    running_instances = ec2.instances.filter(
+        Filters=[{'Name': 'instance-state-name', 'Values': ['running']},
+                 {'Name': 'instance-type', 'Values': ['t2.micro']}])
+    # create list of instances
+    for instance in running_instances:
+        print(instance.id, instance.instance_type, instance.public_ip_address)
+        running_instance_list.append(instance)
+
     num_running_instances = len(running_instance_list)
     if num_running_instances >= num_instances: # we have enough running instances, we can run the container
         for instance in running_instances:
             exec_shell_command(instance.public_ip_address, cfg, cmd)
 
-    # otherwise, create instances and run command
+    # otherwise, create new instances and run command
     else:
         instances = create_instances(cfg.ec2_cluster_cfg['ami_id'], cfg.ec2_cluster_cfg['instance_type'], \
                                      [cfg.ec2_cluster_cfg['sec_grp']], cfg.ec2_cluster_cfg['key_pair'], num_instances - num_running_instances )

@@ -61,6 +61,18 @@ function drawBoxes(objects) {
         drawCtx.fillText(object.class_name + " - " + Math.round(object.score * 100) + "%", x + 5, y + 20);
         drawCtx.strokeRect(x, y, width, height);
 
+        // Now draw landmarks
+        landmarks = object.landmarks
+        landmarks.forEach(landmark => {
+            let x = 2*landmark.x - 5;
+            let y = 2*landmark.y - 5;   
+            //flip the x axis if local video is mirrored
+            if (mirror) {
+                x = drawCanvas.width - (x + 10)
+            }
+            drawCtx.strokeRect(x, y, 10, 10);
+        });
+
     });
 }
 

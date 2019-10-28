@@ -15,6 +15,7 @@ ADD mtcnn_pytorch_serv.py /home/ubuntu/dev/faceRec/server
 ADD config.py /home/ubuntu/dev/faceRec/server
 COPY models /home/ubuntu/dev/faceRec/server/models
 COPY data /home/ubuntu/dev/faceRec/server/data
+COPY mtcnn_pytorch /home/ubuntu/dev/faceRec/server/mtcnn_pytorch
 
 FROM face-det-app AS face-det-serv 
 WORKDIR /home/ubuntu/dev/faceRec/server/

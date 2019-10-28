@@ -8,7 +8,7 @@ session = boto3.Session(profile_name='ankur-eks-dev')
 ec2 = boto3.resource('ec2', region_name='us-east-1')
 ec2_client = boto3.client('ec2', region_name='us-east-1')
 
-num_instances = 3
+num_instances = cfg.ec2_cluster_cfg['num_instances']
 
 # cmd to run
 login_github = 'docker login docker.pkg.github.com -u ' + cfg.github_cfg['user_name'] + ' ' + '-p ' + \

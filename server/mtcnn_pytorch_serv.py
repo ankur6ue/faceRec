@@ -12,6 +12,7 @@ import socket
 from timeit import default_timer as timer
 import psutil
 from logging.handlers import RotatingFileHandler
+from PIL import Image, ImageDraw
 application = Flask(__name__)
 cache = {}
 
@@ -79,15 +80,16 @@ def detect(proc_id):
             threshold = float(threshold)
 
         image_file_np = np.fromstring(image_file.read(), np.uint8)
-        frame = cv2.imdecode(image_file_np, cv2.IMREAD_UNCHANGED)
-        boxes, landmarks = mtcnn(frame)
+        frame = Image.fromarray(cv2.imdecode(image_file_np, cv2.IMREAD_UNCHANGED))
+        boxes, landmarks_ = mtcnn(frame)
         end = timer()
         objects = []
         object_data = {}
         conf = 1
-        if boxes.all():
-            for (box, landmark) in zip(boxes, landmarks):
-                conf = box[5]
+        num_landmarks = 5
+        if len(boxes) is not 0:
+            for (box, landmark_) in zip(boxes, landmarks_):
+                conf = box[4]
                 if (conf > threshold):
                     object = {}
                     object['score'] = float(conf)
@@ -96,12 +98,22 @@ def detect(proc_id):
                     object['y'] = float(box[1])
                     object['width'] = float(box[2]-box[0])
                     object['height'] = float(box[3]-box[1])
+                    
+                    landmarks = []
+                    for i in range(num_landmarks):
+                        landmark = {}
+                        landmark['x'] = float(landmark_[i])
+                        landmark['y'] = float(landmark_[5+i])
+                        landmarks.append(landmark)
+                    object['landmarks'] = landmarks
                     objects.append(object)
+                    
         
         
         object_data["objects"] = objects
         # append host IP
-        object_data["server_ip"] = os.environ['MY_IPS']
+        if 'MY_IPS' in os.environ:
+            object_data["server_ip"] = os.environ['MY_IPS']
         object_data["proc_start_time"] = start
         object_data["proc_end_time"] = end
         if frame_count % 5 == 0:

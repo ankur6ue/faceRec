@@ -76,7 +76,18 @@ function postFile(file) {
     xhr.onload = function () {
         if (this.status === 200) {
             let object_data = JSON.parse(this.response);
-
+            var log_text = ""
+            // console.log(object_data['server_ip'])
+            log_text += "server# " + object_data['server_ip']
+			proc_time = object_data.proc_end_time - object_data.proc_start_time
+            log_text += "\n" + "FPS: " + 1.0/proc_time
+			console.log(proc_time)
+			if ('cpu_util' in object_data)
+			{
+				console.log(object_data['cpu_util'])
+                log_text += "\n" + "CPU Util: " + object_data['cpu_util']
+			}
+            $("#log").val(log_text);
             //draw the boxes
             drawBoxes(object_data.objects);
 

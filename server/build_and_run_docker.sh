@@ -11,7 +11,7 @@ echo "$token"
 #-rm removes intermediate containers
 docker image build --rm --tag ${app} .
 #docker system prune
-#docker container run -t -i -d -p 5000:5000 ${app}
+#docker container run -t -i -d -p 5001:5000 ${app}
 
 # if token exists then try to upload to github
 if [ -n "$token" ]; then

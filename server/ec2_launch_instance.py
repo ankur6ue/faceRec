@@ -15,7 +15,7 @@ login_github = 'docker login docker.pkg.github.com -u ' + cfg.github_cfg['user_n
                cfg.github_cfg['token']
 pull_container = 'docker pull ' + cfg.ec2_cluster_cfg['container_name']
 stop_containers = 'docker stop $(docker ps -a -q)'
-run_container = 'docker container run -t -i -d -p 5000:5000 ' + cfg.ec2_cluster_cfg['container_name']
+run_container = 'docker container run -t -i -d -p 5000:5000 ' + '--env "MY_IPS=$(hostname)" ' + cfg.ec2_cluster_cfg['container_name']
 cmd = login_github + ';' + pull_container + ';' + stop_containers + ';' + run_container
 
 # check if a EC2 instances is already running, if not create an instance

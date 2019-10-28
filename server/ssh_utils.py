@@ -17,12 +17,14 @@ def create_instances(image_id, instance_type, security_group, key_name, num_inst
 
 def write_cluster_ip_conf(cluster_ip_conf_path, instances):
     file = open(cluster_ip_conf_path, 'w')
-    file.write('<Proxy balancer://mycluster>')
+    file.write('\nHeader add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED')
+    file.write('\n<Proxy balancer://mycluster>')
     count = 0
     for instance in instances:
         count = count + 1
         file.write('\n\t# server {0}\n\
         BalancerMember http://{1}:5000/'.format(count, instance.public_ip_address))
+    file.write('\nProxySet stickysession=ROUTEID')    
     file.write('\n</Proxy>')
     file.close()
 

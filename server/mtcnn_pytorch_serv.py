@@ -2,7 +2,8 @@ import os
 import sys
 from flask import Flask, request, Response, jsonify
 sys.path.insert(0, os.path.abspath("."))
-from models.mtcnn import MTCNN
+#from models.mtcnn import MTCNN
+from mtcnn_pytorch.src import  MTCNN2
 import config
 import cv2
 import numpy as np
@@ -51,7 +52,7 @@ def init():
     application.logger.addHandler(handler)
     try:
         device = 'cpu'
-        mtcnn = MTCNN(keep_all=True, device=device)
+        mtcnn = MTCNN2()
         cache['mtcnn'] = mtcnn
         return Response('successfully initialized MTCNN')
     except Exception as e:
@@ -79,13 +80,14 @@ def detect(proc_id):
 
         image_file_np = np.fromstring(image_file.read(), np.uint8)
         frame = cv2.imdecode(image_file_np, cv2.IMREAD_UNCHANGED)
-        boxes, confs = mtcnn.detect(frame)
+        boxes, landmarks = mtcnn(frame)
         end = timer()
         objects = []
         object_data = {}
         conf = 1
-        if boxes[0] is not None:
-            for (box, conf) in zip(boxes[0], confs[0]):
+        if boxes.all():
+            for (box, landmark) in zip(boxes, landmarks):
+                conf = box[5]
                 if (conf > threshold):
                     object = {}
                     object['score'] = float(conf)

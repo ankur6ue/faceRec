@@ -17,7 +17,7 @@ const ovHeight = 240
 var procType = "gpu"
 
 if (hostType == 'localhost')
-	apiServer = "http://34.239.152.220:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
+	apiServer = "https://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
 else
 	apiServer = "https://telesens.co/face_det"
 
@@ -35,8 +35,7 @@ let imageCanvas = document.createElement('canvas');
 let imageCtx = imageCanvas.getContext("2d");
 
 //create a canvas for drawing object boundaries
-let drawCanvas = document.createElement('canvas');
-document.body.appendChild(drawCanvas);
+let drawCanvas = document.getElementById('drawCanvas');
 let drawCtx = drawCanvas.getContext("2d");
 
 //draw boxes and labels on each detected object
@@ -47,6 +46,10 @@ function drawBoxes(objects) {
 
     //filter out objects that contain a class_name and then draw boxes and labels on each
     objects.filter(object => object.class_name).forEach(object => {
+		
+		var rect = drawCanvas.getBoundingClientRect(), // abs. size of element
+		scaleX = drawCanvas.width / rect.width,    // relationship bitmap vs. element for X
+		scaleY = drawCanvas.height / rect.height;  // relationship bitmap vs. element for Y
 
         let x = 2*object.x;
         let y = 2*object.y;

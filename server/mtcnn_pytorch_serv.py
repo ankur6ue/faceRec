@@ -129,7 +129,7 @@ def detect(proc_id):
 if __name__ == '__main__':
 	# without SSL
     if (os.name == 'nt'):
-        application.run(debug=True, host='0.0.0.0')
+        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg['ssl_crt'], cfg['ssl_key']))
     # on ubuntu run with ssl
     else:
 #        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg['ssl_crt'], cfg['ssl_key']))

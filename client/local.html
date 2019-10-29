@@ -1,49 +1,120 @@
 <!DOCTYPE html>
-<html>
+
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>SSD Object Detection WebCam Demo</title>
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-	<script src="jquery-3.3.1.min.js"></script>
+
+    <title>Face Detection and Recognition Demo</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="bootstrap\css\bootstrap.min.css" rel="stylesheet">
+
     <style>
-        video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            /* Mirror the local video */
-            transform: scale(-1, 1);            /*For Firefox (& IE) */
-            -webkit-transform: scale(-1, 1);     /*for Chrome & Opera (& Safari) */
-        }
-        textarea {
-            padding: 10px;
-            position: absolute;
-            top: 500px;
-            line-height: 1.5;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-shadow: 1px 1px 1px #999;
-        }
-        canvas{
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index:1;
+		.bd-placeholder-img {
+		font-size: 1.125rem;
+		text-anchor: middle;
+		}
+
+		@media (min-width: 768px) {
+		.bd-placeholder-img-lg {
+		  font-size: 3.5rem;
+		}
+		}
+		.videoContainer{
+			position: absolute;
+			top: 50px;
+			left: 60px;
+		}
+		.videoStyle {
+			display:block;
+			z-index: -1;
+			/* Mirror the local video */
+			transform: scale(-1, 1);            /*For Firefox (& IE) */
+			-webkit-transform: scale(-1, 1);     /*for Chrome & Opera (& Safari) */
+		}
+		
+		canvas{
+			position: absolute;
+			top: 50px;
+			left: 60px;
+			z-index:1;
 			pointer-events: None /* necessary for the mouse events to go to the processor listbox */
-        }
+		}
+		
+		textarea {
+			padding: 10px;
+			position: relative;
+			top: 500px;
+			line-height: 1.5;
+			border-radius: 5px;
+			border: 1px solid #ccc;
+			box-shadow: 1px 1px 1px #999;
+		}
     </style>
-	
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!-- Custom styles for this template -->
+    <link href="dashboard.css" rel="stylesheet">
 </head>
 <body>
-<textarea id="log" rows="5"></textarea>
+	<nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+		<a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Face Detection and Recognition Demo</a>
+		<a class="col-sm-2 col-md-8 mr-0" href="#">Instructions</a>
+	</nav>
 
-<video id="myVideo" autoplay></video>
-<select id = "ProcList" name="ProcList" size="2" style="z-index:3"></select>
-<script src="local.js"></script>
+	<div class="container-fluid">
+		<div class="row">
+			<nav class="col-md-2 d-none d-md-block bg-light sidebar">
+				<div class="sidebar-sticky">
 
+					<ul class="nav flex-column mb-2">
+						<li class="nav-item">
+							
+						</li>
+					</ul>
+					<div class="border">
+						
+					</div>
+					<p>
+					<div class="border">
+						
+					</div>
+					<p>
+					<div class="border">
+					   
+					</div>
+					<p>
+					
+				</div>
+			</nav>
+
+			<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+				<div id="renderer-content"></div>
+				<!--
+				 <div id="contour-content">
+				   <canvas width="800" height="400"></canvas>
+				 </div>
+			   !-->
+				<div class="videoContainer">
+					<video id="myVideo" class="videoStyle" autoplay></video>
+				</div>
+				<canvas id="drawCanvas"> </canvas>
+			   <textarea id="log" rows="5" cols="25"></textarea>
+				<!--
+				<select id = "ProcList" name="ProcList" size="2" style="z-index:3"></select>
+				!-->
+				<script src="local.js"></script>
+			</main>
+		</div>
+	</div>	
+<script src="jquery-3.3.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script src="bootstrap\js\bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.9.0/feather.min.js"></script>
+
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script id="faceRec" src="faceRec.js" data-source="myVideo" data-apiServer="remote" 
-data-mirror="true" data-uploadWidth="640" data-scoreThreshold="0.40"></script>
-
+		data-mirror="true" data-uploadWidth="640" data-scoreThreshold="0.40"></script>
 
 </body>
 </html>

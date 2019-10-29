@@ -73,7 +73,8 @@ class MTCNN2(nn.Module):
         # STAGE 2
 
         img_boxes = get_image_boxes(bounding_boxes, image, size=24)
-        img_boxes = Variable(torch.FloatTensor(img_boxes), volatile=True)
+        with torch.no_grad():
+            img_boxes = Variable(torch.FloatTensor(img_boxes))
         output = self.rnet(img_boxes)
         offsets = output[0].data.numpy()  # shape [n_boxes, 4]
         probs = output[1].data.numpy()  # shape [n_boxes, 2]
@@ -94,7 +95,8 @@ class MTCNN2(nn.Module):
         img_boxes = get_image_boxes(bounding_boxes, image, size=48)
         if len(img_boxes) == 0:
             return [], []
-        img_boxes = Variable(torch.FloatTensor(img_boxes), volatile=True)
+        with torch.no_grad():
+            img_boxes = Variable(torch.FloatTensor(img_boxes))
         output = self.onet(img_boxes)
         landmarks = output[0].data.numpy()  # shape [n_boxes, 10]
         offsets = output[1].data.numpy()  # shape [n_boxes, 4]

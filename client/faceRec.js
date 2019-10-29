@@ -10,7 +10,7 @@ const s = document.getElementById('faceRec');
 const sourceVideo = s.getAttribute("data-source");  //the source video to use
 const uploadWidth = s.getAttribute("data-uploadWidth") || 640; //the width of the upload file
 const mirror = s.getAttribute("data-mirror") || false; //mirror the boundary boxes
-const scoreThreshold = s.getAttribute("data-scoreThreshold") || 0.5;
+var scoreThreshold = s.getAttribute("data-scoreThreshold") || 0.8;
 const hostType = s.getAttribute("data-apiServer")
 const ovWidth = 320
 const ovHeight = 240
@@ -171,6 +171,17 @@ v.onplaying = () => {
     }
 };
 
+document.addEventListener("DOMContentLoaded", function () {
+	var this1 = this;
+	$("#slider1").slider({
+		max: 1,
+		step: 0.1,
+		value: 0.8,
+		slide: function (event, ui) {
+			scoreThreshold = ui.value
+		}
+	});
+})
 /*
 
 document.addEventListener("DOMContentLoaded", function() {

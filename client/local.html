@@ -72,7 +72,10 @@
 						</li>
 					</ul>
 					<div class="border">
-						
+						<div class="form-group">
+                        <label for="slider1">Face Detection Threshold</label>
+                        <div id="slider1"></div>
+                    </div>
 					</div>
 					<p>
 					<div class="border">
@@ -113,8 +116,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.9.0/feather.min.js"></script>
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-<script id="faceRec" src="faceRec.js" data-source="myVideo" data-apiServer="remote" 
-		data-mirror="true" data-uploadWidth="640" data-scoreThreshold="0.40"></script>
+<script id="faceRec" src="faceRec.js" data-source="myVideo" data-apiServer="localhost" 
+		data-mirror="true" data-uploadWidth="640" data-scoreThreshold="0.80"></script>
 
 </body>
 </html>

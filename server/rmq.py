@@ -12,20 +12,25 @@ class MongoDb(object):
 
     def __init__(self, mongo_url, logger):
         self.dbname = None
+        self.logger = logger
         try:
             self.moConn = MongoClient(mongo_url, serverSelectionTimeoutMS=3)
             self.moConn.server_info()  # force connection on a request as the
             self.dbname = self.moConn[env.MONGO_DB]
+
         except Exception as e:
-            logger.error('Exception: %s', e.args)
+            self.logger.error('Exception: %s', e.args)
 
     def insert(self, collection, data):
         if self.dbname:
-            start = timer()
-            result = self.dbname[collection].insert_one(data)
-            end = timer()
-            print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end-start))
-
+            try:
+                start = timer()
+                result = self.dbname[collection].insert_one(data)
+                end = timer()
+                print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
+            except Exception as e:
+                self.logger.error('Exception: %s', e.args)
+                
     def removeAll(self):
         self.moConn.drop_database(env.MONGO_DB)
 

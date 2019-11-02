@@ -17,7 +17,7 @@ const ovHeight = 240
 var procType = "gpu"
 
 if (hostType == 'localhost')
-	apiServer = "https://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
+	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
 else
 	apiServer = "https://telesens.co/face_det"
 

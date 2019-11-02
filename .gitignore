@@ -2,8 +2,10 @@
 /logs/*
 server/config.py
 server/config_ec2_cluster.py
+server/config_db.py
 server/paramiko_test.py
 proxy-apache-conf/cluster_ip.conf
+/server/tests/*
 
 # Compiled source #
 ###################

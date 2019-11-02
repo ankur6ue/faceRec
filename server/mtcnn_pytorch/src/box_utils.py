@@ -133,14 +133,14 @@ def get_image_boxes(bounding_boxes, img, size=24):
         size: an integer, size of cutouts.
 
     Returns:
-        a float numpy array of shape [n, 3, size, size].
+        1. a float numpy array of shape [n, 3, size, size] containing the pre-processed cutouts
     """
 
     num_boxes = len(bounding_boxes)
     width, height = img.size
 
     [dy, edy, dx, edx, y, ey, x, ex, w, h] = correct_bboxes(bounding_boxes, width, height)
-    img_boxes = np.zeros((num_boxes, 3, size, size), 'float32')
+    img_boxes_preprocess = np.zeros((num_boxes, 3, size, size), 'float32')
 
     for i in range(num_boxes):
         img_box = np.zeros((h[i], w[i], 3), 'uint8')
@@ -153,10 +153,9 @@ def get_image_boxes(bounding_boxes, img, size=24):
         img_box = Image.fromarray(img_box)
         img_box = img_box.resize((size, size), Image.BILINEAR)
         img_box = np.asarray(img_box, 'float32')
+        img_boxes_preprocess[i, :, :, :] = _preprocess(img_box)
 
-        img_boxes[i, :, :, :] = _preprocess(img_box)
-
-    return img_boxes
+    return img_boxes_preprocess
 
 
 def correct_bboxes(bboxes, width, height):

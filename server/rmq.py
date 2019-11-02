@@ -30,7 +30,7 @@ class MongoDb(object):
                 print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
             except Exception as e:
                 self.logger.error('Exception: %s', e.args)
-                
+
     def removeAll(self):
         self.moConn.drop_database(env.MONGO_DB)
 
@@ -87,7 +87,6 @@ class RmqConsumer(object):
             mongo_url = 'mongodb://{0}:{1}@{2}:{3}'.format(env.MONGO_ADMIN_UNAME, env.MONGO_PWORD, env.MONGO_HOST,
                                             env.MONGO_PORT)
             print(mongo_url)
-            mongo_url = 'mongodb://' + env.MONGO_HOST + ':' + env.MONGO_PORT
             self.mongo = MongoDb(mongo_url, logger)
         except Exception as e:
             logger.error('Exception: %s', e.args)

@@ -126,9 +126,11 @@ def detect(proc_id):
             cropped_size = cfg.CROPPED_SIZE
         else:
             cropped_size = int(cropped_size)
-
-        image_file_np = np.fromstring(image_file.read(), np.uint8)
-        frame = Image.fromarray(cv2.imdecode(image_file_np, cv2.IMREAD_UNCHANGED))
+        image_str = image_file.read()
+        image_np = np.asarray(bytearray(image_str), dtype="uint8")
+        imageBGR = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+        imageRGB = cv2.cvtColor(imageBGR, cv2.COLOR_BGR2RGB)
+        frame = Image.fromarray(imageRGB)
         boxes, landmarks_ = mtcnn(frame)
         if len(boxes) is not 0:
             crop_and_enqueue_bboxes(frame, boxes, landmarks_, cropped_size)

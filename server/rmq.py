@@ -3,6 +3,7 @@ from json import loads
 import pika
 import json
 import base64
+import os
 import numpy as np
 import config_db as env
 from timeit import default_timer as timer
@@ -30,7 +31,7 @@ class MongoDb(object):
                 print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
             except Exception as e:
                 self.logger.error('Exception: %s', e.args)
-
+                
     def removeAll(self):
         self.moConn.drop_database(env.MONGO_DB)
 
@@ -58,8 +59,10 @@ class RmqProducer(object):
             # connect with mongodb
             mongo_url = 'mongodb://{0}:{1}@{2}:{3}'.format(env.MONGO_ADMIN_UNAME, env.MONGO_PWORD, env.MONGO_HOST,
                                                            env.MONGO_PORT)
-            self.mongo = MongoDb(mongo_url, logger)
-            self.mongo.close()
+            if 'MY_IPS' not in os.environ:
+                self.mongo = MongoDb(mongo_url, logger)
+                self.mongo.close()            
+
         except Exception as e:
             logger.error('Exception: %s', e.args)
 
@@ -68,9 +71,13 @@ class RmqProducer(object):
     # Send task to queue rabbitmq
     def send(self, message):
         if self.channel: # no point sending anything if no channel
-            if self.mongo.dbname: # if we couldn't connect to the mongodb, no point sending anything
-                # as messages will simply accumulate on the consumer side of the queue
+            if 'MY_IPS' in os.environ: # don't check for mongo if running inside container as I couldn't install mongo driver in the container
+            # the MY_IPS env var will be set when running inside the container
                 self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+            else:            
+                if self.mongo.dbname: # if we couldn't connect to the mongodb, no point sending anything
+                    # as messages will simply accumulate on the consumer side of the queue
+                    self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
 
 class RmqConsumer(object):
 
@@ -109,9 +116,13 @@ class RmqConsumer(object):
     def callback(self, ch, method, properties, body):
 
         message = json.loads(body)
-        print(" Received message from subject {0}".format(message['subjectId']))
+        if 'subjectId' in message:
+            print("Received message from subject {0}".format(message['subjectId']))
 
-        message['image_b64'] = base64.b64encode(np.ascontiguousarray(message['image_b64']).astype('uint8'))
-        if self.mongo:
-            self.mongo.insert(env.MONGO_COLLECTIONS, message)
+            message['image_b64'] = base64.b64encode(np.ascontiguousarray(message['image_b64']).astype('uint8'))
+            if self.mongo:
+                self.mongo.insert(env.MONGO_COLLECTIONS, message)
+        else:
+            print("Received message")
+
         ch.basic_ack(delivery_tag = method.delivery_tag)

@@ -14,9 +14,10 @@ num_instances = cfg.ec2_cluster_cfg['num_instances']
 login_github = 'docker login docker.pkg.github.com -u ' + cfg.github_cfg['user_name'] + ' ' + '-p ' + \
                cfg.github_cfg['token']
 pull_container = 'docker pull ' + cfg.ec2_cluster_cfg['container_name']
-stop_containers = 'docker stop $(docker ps -a -q)'
+stop_container = 'docker stop $(docker ps -a -q)'
+prune_container = 'docker system prune -f'
 run_container = 'docker container run -t -i -d -p 5000:5000 ' + '--env "MY_IPS=$(hostname)" ' + cfg.ec2_cluster_cfg['container_name']
-cmd = login_github + ';' + pull_container + ';' + stop_containers + ';' + run_container
+cmd = login_github + ';' + stop_container + ';' + prune_container + ';' + pull_container + ';' + run_container
 
 # check if a EC2 instances is already running, if not create an instance
 running_instances = ec2.instances.filter(
@@ -29,6 +30,7 @@ if num_running_instances >= num_instances: # we have enough running instances, w
     for instance in running_instances:
         exec_shell_command(instance.public_ip_address, cfg, cmd)
 else:
+    num_instances_needed = num_instances - num_running_instances
     # if we don't have enough running instances, check if there are any stopped instances
     stopped_instances = ec2.instances.filter(
         Filters=[{'Name': 'instance-state-name', 'Values': ['stopped']}, {'Name': 'instance-type', 'Values': ['t2.micro']}])
@@ -36,6 +38,7 @@ else:
     stopped_instance_list = [instance for instance in stopped_instances]
     stopped_instance_ids = [instance.id for instance in stopped_instances]
     num_stopped_instances = len(stopped_instance_list)
+    stopped_instance_ids = stopped_instance_ids[0:min(num_stopped_instances, num_instances_needed)]
     # start the stopped instances and add to running instances list
     ec2_client.start_instances(InstanceIds=stopped_instance_ids)
     # checking for instance_status_ok is more reliable than instance_ready

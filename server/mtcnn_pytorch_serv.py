@@ -185,4 +185,4 @@ if __name__ == '__main__':
     # on ubuntu run with ssl
     else:
 #        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
-        application.run(debug=True, host='0.0.0.0')
+        application.run(debug=True, host='0.0.0.0', port=8081)

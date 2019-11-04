@@ -26,9 +26,14 @@ class MongoDb(object):
         if self.dbname:
             try:
                 start = timer()
-                result = self.dbname[collection].insert_one(data)
-                end = timer()
-                print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
+                if 'subjectId' in data:
+                    # check how many records of this subjectId if we already have
+                    count = self.dbname[collection].count_documents({"subjectId": data["subjectId"]})
+                    print('number of {0} records: {1}'.format(data["subjectId"], count))
+                    if count < env.MONGO_MAX_DOCUMENT_COUNT:
+                        result = self.dbname[collection].insert_one(data)
+                        end = timer()
+                        print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
             except Exception as e:
                 self.logger.error('Exception: %s', e.args)
                 
@@ -52,9 +57,7 @@ class RmqProducer(object):
         self.channel = None
         try:
             self.credentials = pika.PlainCredentials(env.RABBIT_USER, env.RABBIT_PASS)
-            self.connection = pika.BlockingConnection(
-                pika.ConnectionParameters(env.RABBIT_HOST, env.RABBIT_PORT, env.RABBIT_VHOST, self.credentials))
-            self.channel = self.connection.channel()
+            self.open_connection()
             # check if we can make a database connection. If not, not point sending messages to the database
             # connect with mongodb
             mongo_url = 'mongodb://{0}:{1}@{2}:{3}'.format(env.MONGO_ADMIN_UNAME, env.MONGO_PWORD, env.MONGO_HOST,
@@ -67,17 +70,24 @@ class RmqProducer(object):
             logger.error('Exception: %s', e.args)
 
 
+    def open_connection(self):
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(env.RABBIT_HOST, env.RABBIT_PORT, env.RABBIT_VHOST, self.credentials))
+        self.channel = self.connection.channel()
 
     # Send task to queue rabbitmq
     def send(self, message):
         if self.channel: # no point sending anything if no channel
-            if 'MY_IPS' in os.environ: # don't check for mongo if running inside container as I couldn't install mongo driver in the container
-            # the MY_IPS env var will be set when running inside the container
-                self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
-            else:            
-                if self.mongo.dbname: # if we couldn't connect to the mongodb, no point sending anything
-                    # as messages will simply accumulate on the consumer side of the queue
+            if self.channel.is_open:
+                if 'MY_IPS' in os.environ: # don't check for mongo if running inside container as I couldn't install mongo driver in the container
+                # the MY_IPS env var will be set when running inside the container
                     self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+                else:
+                    if self.mongo.dbname: # if we couldn't connect to the mongodb, no point sending anything
+                        # as messages will simply accumulate on the consumer side of the queue
+                        self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+            else: # reopen connection
+                self.open_connection()
 
 class RmqConsumer(object):
 

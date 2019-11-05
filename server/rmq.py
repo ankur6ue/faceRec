@@ -17,21 +17,20 @@ class MongoDb(object):
         try:
             self.moConn = MongoClient(mongo_url, serverSelectionTimeoutMS=3)
             self.moConn.server_info()  # force connection on a request as the
-            self.dbname = self.moConn[env.MONGO_DB]
 
         except Exception as e:
             self.logger.error('Exception: %s', e.args)
 
-    def insert(self, collection, data):
-        if self.dbname:
+    def insert(self, db_name, collection, data):
+        if self.moConn:
             try:
                 start = timer()
                 if 'subjectId' in data:
                     # check how many records of this subjectId if we already have
-                    count = self.dbname[collection].count_documents({"subjectId": data["subjectId"]})
+                    count = self.moConn[db_name][collection].count_documents({"subjectId": data["subjectId"]})
                     print('number of {0} records: {1}'.format(data["subjectId"], count))
                     if count < env.MONGO_MAX_DOCUMENT_COUNT:
-                        result = self.dbname[collection].insert_one(data)
+                        result = self.moConn[db_name][collection].insert_one(data)
                         end = timer()
                         print('record {0} inserted in {1:.4f} seconds'.format(result.inserted_id, end - start))
             except Exception as e:
@@ -40,14 +39,14 @@ class MongoDb(object):
     def removeAll(self):
         self.moConn.drop_database(env.MONGO_DB)
 
-    def get(self, subjectId, collection):
+    def get(self, subjectId, db_name, collection):
         records = None
-        if self.dbname:
-            records = self.dbname[collection].find({'subjectId': subjectId})
+        if self.moConn:
+            records = self.moConn[db_name][collection].find({'subjectId': subjectId})
         return records
 
     def close(self):
-        if self.dbname:
+        if self.moConn:
             self.moConn.close()
 
 class RmqProducer(object):
@@ -83,7 +82,7 @@ class RmqProducer(object):
                 # the MY_IPS env var will be set when running inside the container
                     self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
                 else:
-                    if self.mongo.dbname: # if we couldn't connect to the mongodb, no point sending anything
+                    if self.mongo.moConn: # if we couldn't connect to the mongodb, no point sending anything
                         # as messages will simply accumulate on the consumer side of the queue
                         self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
             else: # reopen connection
@@ -131,7 +130,7 @@ class RmqConsumer(object):
 
             message['image_b64'] = base64.b64encode(np.ascontiguousarray(message['image_b64']).astype('uint8'))
             if self.mongo:
-                self.mongo.insert(env.MONGO_COLLECTIONS, message)
+                self.mongo.insert(env.MONGO_DB, env.MONGO_COLLECTIONS, message)
         else:
             print("Received message")
 

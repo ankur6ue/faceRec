@@ -59,7 +59,7 @@ def init():
         application.logger.info('MTCNN initialization error: %e' % e)
         return e
 
-def crop_and_enqueue_bboxes(im_pil, boxes, landmarks, cropped_size):
+def crop_and_enqueue_bboxes(subjectId, im_pil, boxes, landmarks, cropped_size):
     # round boxes because that's how get_image_boxes expects them
     boxes[:, 0:4] = np.round(boxes[:, 0:4])
     faces_whitened = get_image_boxes(boxes, im_pil, size=cropped_size)
@@ -89,7 +89,7 @@ def crop_and_enqueue_bboxes(im_pil, boxes, landmarks, cropped_size):
     landmark_string = base64.b64encode(np.ascontiguousarray(pn))
     face_record = {
         'time_stamp': datetime.datetime.now().timestamp(),
-        'subjectId': 'subject1',
+        'subjectId': subjectId,
         'image_b64': np.ascontiguousarray(face_).tolist(),
         'landmarks': pn
     }
@@ -106,6 +106,7 @@ def detect(proc_id, registerBbox, subjectId):
 
     application.logger.setLevel(logging.DEBUG)
     app_logger = application.logger
+
     app_logger.addHandler(handler)
     if registerBbox == 'true':
         registerBbox = 1
@@ -143,7 +144,7 @@ def detect(proc_id, registerBbox, subjectId):
         boxes, landmarks_ = mtcnn(frame)
         if (registerBbox is not 0) and (subjectId is not ""):
             if len(boxes) is not 0:
-                crop_and_enqueue_bboxes(frame, boxes, landmarks_, cropped_size)
+                crop_and_enqueue_bboxes(subjectId, frame, boxes, landmarks_, cropped_size)
 
         end = timer()
 

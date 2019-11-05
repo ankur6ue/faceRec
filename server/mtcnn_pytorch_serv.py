@@ -96,12 +96,21 @@ def crop_and_enqueue_bboxes(im_pil, boxes, landmarks, cropped_size):
     if usingRabbit:
         rmqProd.send(json.dumps(face_record))
 
-@application.route('/detect/<proc_id>', methods=['POST'])
-def detect(proc_id):
+"""
+proc_id: processor type (CPU/GPU etc)
+registerBbox: should the cropped images be saved to a database or not
+subjectId: subjectId for the test subject
+"""
+@application.route('/detect/<proc_id>/<registerBbox>/<subjectId>', methods=['POST'])
+def detect(proc_id, registerBbox, subjectId):
+
     application.logger.setLevel(logging.DEBUG)
     app_logger = application.logger
     app_logger.addHandler(handler)
-
+    if registerBbox == 'true':
+        registerBbox = 1
+    else:
+        registerBbox = 0
     try:
         global frame_count
         # record time
@@ -132,8 +141,10 @@ def detect(proc_id):
         imageRGB = cv2.cvtColor(imageBGR, cv2.COLOR_BGR2RGB)
         frame = Image.fromarray(imageRGB)
         boxes, landmarks_ = mtcnn(frame)
-        if len(boxes) is not 0:
-            crop_and_enqueue_bboxes(frame, boxes, landmarks_, cropped_size)
+        if (registerBbox is not 0) and (subjectId is not ""):
+            if len(boxes) is not 0:
+                crop_and_enqueue_bboxes(frame, boxes, landmarks_, cropped_size)
+
         end = timer()
 
         objects = []

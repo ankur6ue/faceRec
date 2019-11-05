@@ -15,11 +15,19 @@ const hostType = s.getAttribute("data-apiServer")
 const ovWidth = 320
 const ovHeight = 240
 var procType = "gpu"
+var regiserBbox = false
+var subjectId = "subject0"
 
 if (hostType == 'localhost')
+{
 	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
+	rescMgmtServer = "https://telesens.co/res_mgmt"
+}
 else
+{
 	apiServer = "https://telesens.co/face_det"
+	rescMgmtServer = "https://telesens.co/res_mgmt"
+}
 
 //Video element selector
 v = document.getElementById(sourceVideo);
@@ -87,7 +95,7 @@ function postFile(file) {
     formdata.append("image", file);
     formdata.append("threshold", scoreThreshold);
     let xhr = new XMLHttpRequest();
-    xhr.open('POST', apiServer + '/detect/' + procType, true);
+    xhr.open('POST', apiServer + '/detect/' + procType + '/' + regiserBbox + '/' + subjectId, true);
     xhr.onload = function () {
         if (this.status === 200) {
             let object_data = JSON.parse(this.response);
@@ -150,6 +158,62 @@ function startObjectDetection() {
 
 }
 
+function getSubjectCount()
+{
+	let xhr = new XMLHttpRequest();
+	var dbName = 'faces'
+	var collectionName = 'faces'
+	var subjectNum = 1
+	var method = rescMgmtServer + '/getCount' + '/' + dbName + '/' + collectionName + '/' + subjectNum
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+			let data = JSON.parse(this.response);
+		}
+	}
+	xhr.send()
+}
+
+function PopulateSubjectDropdown(subjectData)
+{
+	var dropdown = $(".dropdown-menu.subjects");
+	$(".dropdown-menu.subjects").empty();
+	var _this = this
+	for( var i = 0; i < subjectData.length; i++ )
+	{ 
+		str = "<li class='list-item ExampleCaptionDropDownListItem' data-name='" + subjectData[i].name + 
+		"' data-id=" + subjectData[i].id + ">"
+		+ "<a role='menuitem'  href='#'>" + subjectData[i].name + "</a>" + "</li>"
+		dropdown.append(str);
+	}      
+	$('.ExampleCaptionDropDownListItem').click(function(e) {
+		var target = e.currentTarget;
+		var name = target.getAttribute("data-name")
+		var id = target.getAttribute("data-id")
+		console.log(name);
+		console.log(_this.subjectId)
+		_this.subjectId = 'subjectId' + id
+		$('#activeSubject').val(name);
+	});
+	
+}
+
+function getSubjectInfo()
+{
+	let xhr = new XMLHttpRequest();
+	var dbName = 'subjects'
+	var collectionName = 'name_id_map'
+	var method = rescMgmtServer + '/getSubjectInfo' + '/' + dbName + '/' + collectionName
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+			let subjectData = JSON.parse(this.response);
+			PopulateSubjectDropdown(subjectData)
+		}
+	}
+	xhr.send()
+}
+
 //Starting events
 
 //check if metadata is ready - we need the video size
@@ -181,7 +245,21 @@ document.addEventListener("DOMContentLoaded", function () {
 			scoreThreshold = ui.value
 		}
 	});
+	
+	$('#regiserBbox').change(function () {
+		if ($(this).prop('checked')) {
+			regiserBbox = true;
+		} // enable wireframe on all models
+		else {
+			regiserBbox = false;
+		}
+	})
+	// uncheck register checkbox
+	$('#regiserBbox').prop('checked', false);
+	getSubjectCount()
+	getSubjectInfo()
 })
+
 /*
 
 document.addEventListener("DOMContentLoaded", function() {

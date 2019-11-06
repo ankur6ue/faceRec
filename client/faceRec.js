@@ -17,7 +17,14 @@ const ovHeight = 240
 var procType = "gpu"
 var regiserBbox = false
 var subjectId = "subject0"
-
+var dps = []; 
+var dps2 = [];// dataPoints
+// for charts:
+var xVal = 0;
+var yVal = 100; 
+var updateInterval = 1000;
+var dataLength = 20; // number of dataPoints visible at any point
+var date = new Date()
 if (hostType == 'localhost')
 {
 	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
@@ -96,14 +103,29 @@ function postFile(file) {
     formdata.append("threshold", scoreThreshold);
     let xhr = new XMLHttpRequest();
     xhr.open('POST', apiServer + '/detect/' + procType + '/' + regiserBbox + '/' + subjectId, true);
+	var send_t = date.getTime(); 
     xhr.onload = function () {
         if (this.status === 200) {
+			var recv_t = date.getTime(); 
             let object_data = JSON.parse(this.response);
             var log_text = ""
             // console.log(object_data['server_ip'])
             log_text += "server# " + object_data['server_ip']
 			proc_time = object_data.proc_end_time - object_data.proc_start_time
-            log_text += "\n" + "FPS: " + 1.0/proc_time
+			transmission_time = recv_t - send_t
+			fps = 1.0/proc_time
+            log_text += "\n" + "FPS: " + fps
+			dps.push({
+				x: xVal,
+				y: proc_time*1000
+			});
+			dps2.push({
+				x: xVal,
+				y: transmission_time*1000
+			});
+			xVal++;
+			dps.shift();
+			dps2.shift();
 			console.log(proc_time)
 			if ('cpu_util' in object_data)
 			{
@@ -235,7 +257,58 @@ v.onplaying = () => {
     }
 };
 
+
+var chart1 = new CanvasJS.Chart("chartContainer1", {
+	title :{
+		text: "Dynamic Data"
+	},
+	axisY: {
+		includeZero: false
+	},      
+	data: [{
+		type: "line",
+		dataPoints: dps
+	},
+	{
+		type: "line",
+		dataPoints: dps2
+	}]
+});
+
+var chart2 = new CanvasJS.Chart("chartContainer2", {
+	title :{
+		text: "Dynamic Data"
+	},
+	axisY: {
+		includeZero: false
+	},      
+	data: [{
+		type: "line",
+		dataPoints: dps2
+	}]
+});
+
+var count = 20
+setInterval(function(){chart1.render(); chart2.render();}, 100);
+
+for (var j = 0; j < count; j++) {
+		yVal = 0
+		dps.push({
+			x: xVal,
+			y: yVal
+		});
+		dps2.push({
+			x: xVal,
+			y: yVal
+		});
+		xVal++;
+	}
+chart1.render();
+chart2.render();
+
+
 document.addEventListener("DOMContentLoaded", function () {
+	
 	var this1 = this;
 	$("#slider1").slider({
 		max: 1,

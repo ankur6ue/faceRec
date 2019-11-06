@@ -17,14 +17,14 @@ const ovHeight = 240
 var procType = "gpu"
 var regiserBbox = false
 var subjectId = "subject0"
-var dps = []; 
+var dps1 = []; 
 var dps2 = [];// dataPoints
 // for charts:
 var xVal = 0;
 var yVal = 100; 
 var updateInterval = 1000;
 var dataLength = 20; // number of dataPoints visible at any point
-var date = new Date()
+var do_face_detect = false
 if (hostType == 'localhost')
 {
 	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
@@ -97,54 +97,70 @@ function drawBoxes(objects) {
 //Add file blob to a form and post
 function postFile(file) {
 
-    //Set options as form data
-    let formdata = new FormData();
-    formdata.append("image", file);
-    formdata.append("threshold", scoreThreshold);
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', apiServer + '/detect/' + procType + '/' + regiserBbox + '/' + subjectId, true);
-	var send_t = date.getTime(); 
-    xhr.onload = function () {
-        if (this.status === 200) {
-			var recv_t = date.getTime(); 
-            let object_data = JSON.parse(this.response);
-            var log_text = ""
-            // console.log(object_data['server_ip'])
-            log_text += "server# " + object_data['server_ip']
-			proc_time = object_data.proc_end_time - object_data.proc_start_time
-			transmission_time = recv_t - send_t
-			fps = 1.0/proc_time
-            log_text += "\n" + "FPS: " + fps
-			dps.push({
-				x: xVal,
-				y: proc_time*1000
-			});
-			dps2.push({
-				x: xVal,
-				y: transmission_time*1000
-			});
-			xVal++;
-			dps.shift();
-			dps2.shift();
-			console.log(proc_time)
-			if ('cpu_util' in object_data)
-			{
-				console.log(object_data['cpu_util'])
-                log_text += "\n" + "CPU Util: " + object_data['cpu_util']
-			}
-            $("#log").val(log_text);
-            //draw the boxes
-            drawBoxes(object_data.objects);
+	if (do_face_detect)
+	{
+		//Set options as form data
+		let formdata = new FormData();
+		formdata.append("image", file);
+		formdata.append("threshold", scoreThreshold);
+		let xhr = new XMLHttpRequest();
+		xhr.open('POST', apiServer + '/detect/' + procType + '/' + regiserBbox + '/' + subjectId, true);
+		var date = new Date()
+		var send_t = date.getTime();
+		xhr.onload = function () {
+			if (this.status === 200) {
+				var date = new Date()
+				var recv_t = date.getTime(); 
+				let object_data = JSON.parse(this.response);
+				var log_text = ""
+				// console.log(object_data['server_ip'])
+				log_text += "server# " + object_data['server_ip']
+				proc_time = object_data.proc_end_time - object_data.proc_start_time
+				transmission_time = recv_t - send_t - proc_time*1000
+				fps = 1.0/proc_time
+				log_text += "\n" + "FPS: " + fps
+				/*
+				dps1.push({
+					x: xVal,
+					y: proc_time*1000
+				});
+				dps2.push({
+					x: xVal,
+					y: transmission_time
+				});
+				dps1.shift();
+				dps2.shift();
+				*/
+				xVal++;
+				
+				chart1.data.labels.push(xVal);
+				chart1.data.datasets[0].data.push(proc_time*1000);
+				chart1.data.datasets[1].data.push(transmission_time);
+				chart1.data.labels = chart1.data.labels.splice(-dataLength);
+				chart1.data.datasets[0].data = chart1.data.datasets[0].data.splice(-dataLength);
+				chart1.data.datasets[1].data = chart1.data.datasets[1].data.splice(-dataLength);
+				chart1.update(0)
+				
+				if ('cpu_util' in object_data)
+				{
+					console.log(object_data['cpu_util'])
+					log_text += "\n" + "CPU Util: " + object_data['cpu_util']
+				}
+				//$("#log").val(log_text);
+				//draw the boxes
+				drawBoxes(object_data.objects);
 
-            //Save and send the next image
-            imageCtx.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, 0, 0, ovWidth, ovHeight );
-            imageCanvas.toBlob(postFile, 'image/jpeg');
-        }
-        else {
-            console.error(xhr);
-        }
-    };
-    xhr.send(formdata);
+				//Save and send the next image
+				imageCtx.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, 0, 0, ovWidth, ovHeight );
+				imageCanvas.toBlob(postFile, 'image/jpeg');
+			}
+			else {
+				console.error(xhr);
+			}
+		};
+		xhr.send(formdata);
+	}
+	
 	//xhr.send();
 }
 
@@ -256,44 +272,63 @@ v.onplaying = () => {
         startObjectDetection();
     }
 };
+var ctx = document.getElementById("chart");
+var chart1 = new Chart(ctx, {
+  type: 'line',
+  data: {
+    datasets: [
+      { 
+        data: dps1,
+        label: "compute",
+        borderColor: "#3e95cd",
+        fill: false
+      },
+      { 
+        data: dps2,
+        label: "network",
+        borderColor: "#8e5ea2",
+        fill: false
+      }
+	   ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        yAxes: [{
+            ticks: {
+                beginAtZero:true
+				}
+			}]
+		}
+	}
+});
 
 
+/*
 var chart1 = new CanvasJS.Chart("chartContainer1", {
 	title :{
-		text: "Dynamic Data"
+		text: "Compute Analytics"
 	},
 	axisY: {
 		includeZero: false
 	},      
 	data: [{
 		type: "line",
-		dataPoints: dps
+		dataPoints: dps1
 	},
 	{
 		type: "line",
 		dataPoints: dps2
 	}]
 });
-
-var chart2 = new CanvasJS.Chart("chartContainer2", {
-	title :{
-		text: "Dynamic Data"
-	},
-	axisY: {
-		includeZero: false
-	},      
-	data: [{
-		type: "line",
-		dataPoints: dps2
-	}]
-});
-
+*/
 var count = 20
-setInterval(function(){chart1.render(); chart2.render();}, 100);
+//setInterval(function(){chart1.update()}, 100);
 
 for (var j = 0; j < count; j++) {
 		yVal = 0
-		dps.push({
+		dps1.push({
 			x: xVal,
 			y: yVal
 		});
@@ -303,35 +338,47 @@ for (var j = 0; j < count; j++) {
 		});
 		xVal++;
 	}
-chart1.render();
-chart2.render();
+chart1.update();
 
 
-document.addEventListener("DOMContentLoaded", function () {
 	
-	var this1 = this;
-	$("#slider1").slider({
-		max: 1,
-		step: 0.1,
-		value: 0.8,
-		slide: function (event, ui) {
-			scoreThreshold = ui.value
-		}
-	});
-	
-	$('#regiserBbox').change(function () {
-		if ($(this).prop('checked')) {
-			regiserBbox = true;
-		} // enable wireframe on all models
-		else {
-			regiserBbox = false;
-		}
-	})
-	// uncheck register checkbox
-	$('#regiserBbox').prop('checked', false);
-	getSubjectCount()
-	getSubjectInfo()
+var this1 = this;
+$("#slider1").slider({
+	max: 1,
+	step: 0.1,
+	value: 0.8,
+	slide: function (event, ui) {
+		scoreThreshold = ui.value
+	}
+});
+
+$('#regiserBbox').change(function () {
+	if ($(this).prop('checked')) {
+		regiserBbox = true;
+	} // enable wireframe on all models
+	else {
+		regiserBbox = false;
+	}
 })
+$('#videoCtrlBtn').click(function() {
+	prevVal = this.innerHTML
+	if (prevVal == 'Play')
+	{
+		this.innerHTML = 'Stop'
+		do_face_detect = true;
+		imageCanvas.toBlob(postFile, 'image/jpeg');
+	}
+	else
+	{
+		this.innerHTML = 'Play'
+		do_face_detect = false;
+	}
+})
+// uncheck register checkbox
+$('#regiserBbox').prop('checked', false);
+getSubjectCount()
+getSubjectInfo()
+
 
 /*
 

@@ -8,7 +8,7 @@
 
     <!-- Bootstrap core CSS -->
     <link href="bootstrap\css\bootstrap.min.css" rel="stylesheet">
-
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <style>
 		.bd-placeholder-img {
 		font-size: 1.125rem;
@@ -58,7 +58,8 @@
 <body>
 	<nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
 		<a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Face Detection and Recognition Demo</a>
-		<a class="col-sm-2 col-md-8 mr-0" href="#">Instructions</a>
+		<a class="col-sm-2 col-md-8 mr-0" href="#">Instructions: Select your name from the Subjects dropdown and 
+		push Play to start face and landmark detection</a>
 	</nav>
 
 	<div class="container-fluid">
@@ -84,6 +85,11 @@
 							<div id="slider1"></div>
 						</div>
 					</div>
+					
+					<div class="border">
+						<button class="btn btn-primary" type="button" id="videoCtrlBtn">Play</button>
+					</div>
+					
 					<div class="border">
 						<div class="form-group">
 							<input type="text" class="form-control activeSubject" id="activeSubject" placeholder="test">
@@ -112,8 +118,12 @@
 					<video id="myVideo" class="videoStyle" autoplay></video>
 				</div>
 				<canvas id="drawCanvas"> </canvas>
-			   
-			   <div id="chartContainer1" style="height: 250px; width:50%;position: relative;top: 480px"></div>
+			   <!--
+			   <div id="chartContainer1" style="height: 250px; width:50%; position:relative;top: 480px"></div>
+			   !-->
+			   <div id="chart-container" style="position: relative; height:250px; width:600px; top: 500px">
+					<canvas id="chart"></canvas>
+			   </div>
 				<!--
 				<select id = "ProcList" name="ProcList" size="2" style="z-index:3"></select>
 				!-->
@@ -121,7 +131,7 @@
 			</main>
 		</div>
 	</div>	
-<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
 <script src="jquery-3.3.1.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>

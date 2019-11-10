@@ -173,3 +173,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+server/rmq_producer_test.py
+client/viewer.html
+ML_Pipeline.pptx
+server/generate_embeddings.py
+~$ML_Pipeline.pptx

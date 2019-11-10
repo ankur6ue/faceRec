@@ -2,8 +2,6 @@ import os
 import sys
 from flask import Flask, request, Response, jsonify
 sys.path.insert(0, os.path.abspath("."))
-#from models.mtcnn import MTCNN
-from mtcnn_pytorch.src import MTCNN2
 import config as cfg
 import cv2
 import numpy as np
@@ -18,9 +16,10 @@ import datetime
 import json
 from rmq import RmqProducer
 from mtcnn_pytorch.src.box_utils import get_image_boxes
+from face_proc_utils import initFD, initFRModel, initDB, Recognize
+from cache import cache
 
 application = Flask(__name__)
-cache = {}
 handler = RotatingFileHandler(cfg.LOG_FILE, maxBytes=10000, backupCount=1)
 frame_count = 0
 
@@ -50,19 +49,13 @@ def test():
 def init():
     application.logger.setLevel(logging.DEBUG)
     application.logger.addHandler(handler)
-    try:
-        device = 'cpu'
-        mtcnn = MTCNN2()
-        cache['mtcnn'] = mtcnn
-        return Response('successfully initialized MTCNN')
-    except Exception as e:
-        application.logger.info('MTCNN initialization error: %e' % e)
-        return e
+    if initFD(application.logger, 'cpu') is not 0: return Response('error initializing Face Detector')
+    if initDB(application.logger) is not 0: return Response('error initializing Mongo DB Connection')
+    if initFRModel(application.logger) is not 0: return Response('error initializing Face Recognition Model')
+    return Response('successfully initialized FR system')
 
-def crop_and_enqueue_bboxes(subjectId, im_pil, boxes, landmarks, cropped_size):
-    # round boxes because that's how get_image_boxes expects them
-    boxes[:, 0:4] = np.round(boxes[:, 0:4])
-    faces_whitened = get_image_boxes(boxes, im_pil, size=cropped_size)
+def crop_and_enqueue_bboxes(subjectId, im_pil, faces_whitened, boxes, landmarks, cropped_size):
+
     # To show the image, undo whitening transformation img = (img - 127.5)*0.0078125
     faces = np.array(faces_whitened / 0.0078125 + 127.5).astype(np.uint8)
     face_string = base64.b64encode(faces)
@@ -87,6 +80,7 @@ def crop_and_enqueue_bboxes(subjectId, im_pil, boxes, landmarks, cropped_size):
 
     # cv2.imshow('crop', face)
     landmark_string = base64.b64encode(np.ascontiguousarray(pn))
+
     face_record = {
         'time_stamp': datetime.datetime.now().timestamp(),
         'subjectId': subjectId,
@@ -101,8 +95,8 @@ proc_id: processor type (CPU/GPU etc)
 registerBbox: should the cropped images be saved to a database or not
 subjectId: subjectId for the test subject
 """
-@application.route('/detect/<proc_id>/<registerBbox>/<subjectId>', methods=['POST'])
-def detect(proc_id, registerBbox, subjectId):
+@application.route('/detect/<proc_id>/<recognize>/<registerBbox>/<subjectId>', methods=['POST'])
+def detect(proc_id, recognize, registerBbox, subjectId):
 
     application.logger.setLevel(logging.DEBUG)
     app_logger = application.logger
@@ -112,6 +106,7 @@ def detect(proc_id, registerBbox, subjectId):
         registerBbox = 1
     else:
         registerBbox = 0
+
     try:
         global frame_count
         # record time
@@ -123,12 +118,12 @@ def detect(proc_id, registerBbox, subjectId):
         mtcnn = cache['mtcnn']
 
         # Set an image confidence threshold value to limit returned data
-        threshold = request.form.get('threshold')
+        detectThreshold = float(request.form.get('detectThreshold'))
+        recThreshold = float(request.form.get('recThreshold'))
 
-        if threshold is None:
-            threshold = cfg.FACE_DET_THREHOLD
-        else:
-            threshold = float(threshold)
+        if detectThreshold is None:
+            detectThreshold = cfg.FACE_DET_THREHOLD
+
 
         # size of the resized + cropped image
         cropped_size = request.form.get('cropped_size')
@@ -140,29 +135,53 @@ def detect(proc_id, registerBbox, subjectId):
         image_np = np.asarray(bytearray(image_str), dtype="uint8")
         imageBGR = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
         imageRGB = cv2.cvtColor(imageBGR, cv2.COLOR_BGR2RGB)
-        frame = Image.fromarray(imageRGB)
+        frame = Image.fromarray(imageRGB) # PIL Image
         boxes, landmarks_ = mtcnn(frame)
-        if (registerBbox is not 0) and (subjectId is not ""):
-            if len(boxes) is not 0:
-                crop_and_enqueue_bboxes(subjectId, frame, boxes, landmarks_, cropped_size)
+        # round boxes because that's how get_image_boxes expects them
+        boxes[:, 0:4] = np.round(boxes[:, 0:4])
+        if len(boxes) is not 0:
+            faces_whitened = get_image_boxes(boxes, frame, size=cropped_size)
+            if recognize == 'true':
+                start_rec = timer()
+                dists, idxs = Recognize(faces_whitened)
+                end_rec = timer()
+                rec_time = end_rec - start_rec
+            if (registerBbox is 1) and (subjectId is not ""):
+                    crop_and_enqueue_bboxes(subjectId, frame, faces_whitened, boxes, landmarks_, cropped_size)
 
         end = timer()
-
+        subjectInfo = cache['subjectInfo']
         objects = []
         object_data = {}
         num_landmarks = 5  # L/R eye, L/R lip corner, nose tip
+        count = 0
         if len(boxes) is not 0:
             for (box, landmark_) in zip(boxes, landmarks_):
                 conf = box[4]
-                if (conf > threshold):
-                    object = {}
+                object = {}
+                if recognize == 'true':
+                    subjIdx = idxs[count]
+                    subjDist = dists[count]
+                    recScore = float(subjDist[0])
+                    if len(subjDist) > 1:
+                        margin = subjDist[0] - subjDist[1]
+                    else:
+                        margin = 0
+                    if recScore > recThreshold:
+                        object['id'] = subjectInfo[subjIdx[0]]['name']
+                    else:
+                        object['id'] = "Unknown"
+                    object['recScore'] = recScore
+                    object['recMargin'] = float(margin)
+                    count = count + 1
+                if (conf > detectThreshold):
                     object['score'] = float(conf)
                     object['class_name'] = 'face'
                     object['x'] = float(box[0])
                     object['y'] = float(box[1])
                     object['width'] = float(box[2]-box[0])
                     object['height'] = float(box[3]-box[1])
-                    
+
                     landmarks = []
                     for i in range(num_landmarks):
                         landmark = {}
@@ -180,6 +199,9 @@ def detect(proc_id, registerBbox, subjectId):
             object_data["server_ip"] = os.environ['MY_IPS']
         object_data["proc_start_time"] = start
         object_data["proc_end_time"] = end
+        if recognize == 'true':
+            object_data["rec_time"] = rec_time
+
         if frame_count % 5 == 0:
             object_data["cpu_util"] = psutil.cpu_percent()
 

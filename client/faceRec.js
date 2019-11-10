@@ -10,12 +10,14 @@ const s = document.getElementById('faceRec');
 const sourceVideo = s.getAttribute("data-source");  //the source video to use
 const uploadWidth = s.getAttribute("data-uploadWidth") || 640; //the width of the upload file
 const mirror = s.getAttribute("data-mirror") || false; //mirror the boundary boxes
-var scoreThreshold = s.getAttribute("data-scoreThreshold") || 0.8;
+var detectThreshold = s.getAttribute("data-detectThreshold") || 0.8;
+var recThreshold = s.getAttribute("data-recThreshold") || 0.8;
 const hostType = s.getAttribute("data-apiServer")
 const ovWidth = 320
 const ovHeight = 240
 var procType = "gpu"
-var regiserBbox = false
+var registerBbox = false
+var recognizeCbox = false
 var subjectId = "subject0"
 var dps1 = []; 
 var dps2 = [];// dataPoints
@@ -75,10 +77,19 @@ function drawBoxes(objects) {
         if (mirror) {
             x = drawCanvas.width - (x + width)
         }
-
-        drawCtx.fillText(object.class_name + " - " + Math.round(object.score * 100) + "%", x + 5, y + 20);
-        drawCtx.strokeRect(x, y, width, height);
-
+		drawCtx.font = "20px Verdana";
+        drawCtx.fillText(object.class_name + " - " + Math.round(object.score * 100) + "%" , x + 5, y-30)
+		
+		if (recognizeCbox && 'recScore' in object)
+		{
+			drawCtx.font = "15px Verdana";
+			drawCtx.fillStyle = "#00ff00";
+			drawCtx.fillText(object.id, x-5, y - 10);
+			drawCtx.fillText("score: " + object.recScore.toFixed(2), x+5, y + 20) 
+			drawCtx.fillText("margin: " + object.recMargin.toFixed(2), x+5, y + 40)
+			
+		}
+		drawCtx.strokeRect(x, y, width, height);
         // Now draw landmarks
         landmarks = object.landmarks
         landmarks.forEach(landmark => {
@@ -102,9 +113,10 @@ function postFile(file) {
 		//Set options as form data
 		let formdata = new FormData();
 		formdata.append("image", file);
-		formdata.append("threshold", scoreThreshold);
+		formdata.append("detectThreshold", detectThreshold);
+		formdata.append("recThreshold", recThreshold);
 		let xhr = new XMLHttpRequest();
-		xhr.open('POST', apiServer + '/detect/' + procType + '/' + regiserBbox + '/' + subjectId, true);
+		xhr.open('POST', apiServer + '/detect/' + procType + '/' + recognizeCbox + '/' + registerBbox + '/' + subjectId, true);
 		var date = new Date()
 		var send_t = date.getTime();
 		xhr.onload = function () {
@@ -116,6 +128,7 @@ function postFile(file) {
 				// console.log(object_data['server_ip'])
 				log_text += "server# " + object_data['server_ip']
 				proc_time = object_data.proc_end_time - object_data.proc_start_time
+				rec_time = object_data.rec_time
 				transmission_time = recv_t - send_t - proc_time*1000
 				fps = 1.0/proc_time
 				log_text += "\n" + "FPS: " + fps
@@ -136,9 +149,11 @@ function postFile(file) {
 				chart1.data.labels.push(xVal);
 				chart1.data.datasets[0].data.push(proc_time*1000);
 				chart1.data.datasets[1].data.push(transmission_time);
+				chart1.data.datasets[2].data.push(rec_time);
 				chart1.data.labels = chart1.data.labels.splice(-dataLength);
 				chart1.data.datasets[0].data = chart1.data.datasets[0].data.splice(-dataLength);
 				chart1.data.datasets[1].data = chart1.data.datasets[1].data.splice(-dataLength);
+				chart1.data.datasets[2].data = chart1.data.datasets[2].data.splice(-dataLength);
 				chart1.update(0)
 				
 				if ('cpu_util' in object_data)
@@ -169,7 +184,7 @@ function startObjectDetection() {
 
     console.log("starting Face Recognition");
     
-    //Set canvas sizes base don input video
+    //Set canvas sizes based on input video
     drawCanvas.width = v.videoWidth;
     drawCanvas.height = v.videoHeight;
 
@@ -277,18 +292,24 @@ var chart1 = new Chart(ctx, {
   type: 'line',
   data: {
     datasets: [
-      { 
-        data: dps1,
-        label: "compute",
-        borderColor: "#3e95cd",
-        fill: false
-      },
-      { 
-        data: dps2,
-        label: "network",
-        borderColor: "#8e5ea2",
-        fill: false
-      }
+		{ 
+		data: dps1,
+		label: "compute",
+		borderColor: "#3e95cd",
+		fill: false
+		},
+		{ 
+		data: dps1,
+		label: "network",
+		borderColor: "#8e5ea2",
+		fill: false
+		},
+		{ 
+		data: dps1,
+		label: "recognize",
+		borderColor: "#8e5eb2",
+		fill: false
+		}
 	   ]
   },
   options: {
@@ -297,7 +318,9 @@ var chart1 = new Chart(ctx, {
     scales: {
         yAxes: [{
             ticks: {
-                beginAtZero:true
+                beginAtZero:true,
+				suggestedMin: 0,
+				suggestedMax: 500
 				}
 			}]
 		}
@@ -348,16 +371,32 @@ $("#slider1").slider({
 	step: 0.1,
 	value: 0.8,
 	slide: function (event, ui) {
-		scoreThreshold = ui.value
+		detectThreshold = ui.value
+	}
+});
+$("#slider2").slider({
+	max: 1,
+	step: 0.1,
+	value: 0.8,
+	slide: function (event, ui) {
+		recThreshold = ui.value
 	}
 });
 
-$('#regiserBbox').change(function () {
+$('#registerBbox').change(function () {
 	if ($(this).prop('checked')) {
-		regiserBbox = true;
+		registerBbox = true;
 	} // enable wireframe on all models
 	else {
-		regiserBbox = false;
+		registerBbox = false;
+	}
+})
+$('#recognizeCbox').change(function () {
+	if ($(this).prop('checked')) {
+		recognizeCbox = true;
+	} // enable wireframe on all models
+	else {
+		recognizeCbox = false;
 	}
 })
 $('#videoCtrlBtn').click(function() {

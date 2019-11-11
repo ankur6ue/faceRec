@@ -80,11 +80,17 @@ class RmqProducer(object):
             if self.channel.is_open:
                 if 'MY_IPS' in os.environ: # don't check for mongo if running inside container as I couldn't install mongo driver in the container
                 # the MY_IPS env var will be set when running inside the container
-                    self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+                    try:
+                        self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+                    except Exception as e:
+                        self.open_connection() # ideally should only do this for StreamLostException
                 else:
                     if self.mongo.moConn: # if we couldn't connect to the mongodb, no point sending anything
                         # as messages will simply accumulate on the consumer side of the queue
-                        self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+                        try:
+                            self.channel.basic_publish(exchange='', routing_key=env.RABBIT_QUEUE_NAME, body=message)
+                        except Exception as e:
+                            self.open_connection() # ideally should only do this for StreamLostException
             else: # reopen connection
                 self.open_connection()
 

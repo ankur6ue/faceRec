@@ -124,6 +124,9 @@ def detect(proc_id, recognize, registerBbox, subjectId):
         if detectThreshold is None:
             detectThreshold = cfg.FACE_DET_THREHOLD
 
+        subjectInfo = cache['subjectInfo']
+        objects = []
+        object_data = {}
 
         # size of the resized + cropped image
         cropped_size = request.form.get('cropped_size')
@@ -137,22 +140,23 @@ def detect(proc_id, recognize, registerBbox, subjectId):
         imageRGB = cv2.cvtColor(imageBGR, cv2.COLOR_BGR2RGB)
         frame = Image.fromarray(imageRGB) # PIL Image
         boxes, landmarks_ = mtcnn(frame)
-        # round boxes because that's how get_image_boxes expects them
-        boxes[:, 0:4] = np.round(boxes[:, 0:4])
+
         if len(boxes) is not 0:
+            # round boxes because that's how get_image_boxes expects them
+            boxes[:, 0:4] = np.round(boxes[:, 0:4])
             faces_whitened = get_image_boxes(boxes, frame, size=cropped_size)
             if recognize == 'true':
                 start_rec = timer()
                 dists, idxs = Recognize(faces_whitened)
                 end_rec = timer()
                 rec_time = end_rec - start_rec
+                object_data["rec_time"] = rec_time
+
             if (registerBbox is 1) and (subjectId is not ""):
                     crop_and_enqueue_bboxes(subjectId, frame, faces_whitened, boxes, landmarks_, cropped_size)
 
         end = timer()
-        subjectInfo = cache['subjectInfo']
-        objects = []
-        object_data = {}
+
         num_landmarks = 5  # L/R eye, L/R lip corner, nose tip
         count = 0
         if len(boxes) is not 0:
@@ -199,8 +203,6 @@ def detect(proc_id, recognize, registerBbox, subjectId):
             object_data["server_ip"] = os.environ['MY_IPS']
         object_data["proc_start_time"] = start
         object_data["proc_end_time"] = end
-        if recognize == 'true':
-            object_data["rec_time"] = rec_time
 
         if frame_count % 5 == 0:
             object_data["cpu_util"] = psutil.cpu_percent()
@@ -219,4 +221,4 @@ if __name__ == '__main__':
     # on ubuntu run with ssl
     else:
 #        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
-        application.run(debug=True, host='0.0.0.0', port=8081)
+        application.run(debug=True, host='0.0.0.0', port=5000)

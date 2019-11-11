@@ -23,7 +23,7 @@ def write_cluster_ip_conf(cluster_ip_conf_path, instances):
     for instance in instances:
         count = count + 1
         file.write('\n\t# server {0}\n\
-        BalancerMember http://{1}:5000/'.format(count, instance.public_ip_address))
+        BalancerMember http://{1}:5000'.format(count, instance.public_ip_address))
     file.write('\nProxySet stickysession=ROUTEID')    
     file.write('\n</Proxy>')
     file.close()

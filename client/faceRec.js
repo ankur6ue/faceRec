@@ -128,7 +128,7 @@ function postFile(file) {
 				// console.log(object_data['server_ip'])
 				log_text += "server# " + object_data['server_ip']
 				proc_time = object_data.proc_end_time - object_data.proc_start_time
-				rec_time = object_data.rec_time
+				rec_time = object_data.rec_time*1000
 				transmission_time = recv_t - send_t - proc_time*1000
 				fps = 1.0/proc_time
 				log_text += "\n" + "FPS: " + fps
@@ -307,7 +307,7 @@ var chart1 = new Chart(ctx, {
 		{ 
 		data: dps1,
 		label: "recognize",
-		borderColor: "#8e5eb2",
+		borderColor: "#00ea00",
 		fill: false
 		}
 	   ]
@@ -328,34 +328,13 @@ var chart1 = new Chart(ctx, {
 });
 
 
-/*
-var chart1 = new CanvasJS.Chart("chartContainer1", {
-	title :{
-		text: "Compute Analytics"
-	},
-	axisY: {
-		includeZero: false
-	},      
-	data: [{
-		type: "line",
-		dataPoints: dps1
-	},
-	{
-		type: "line",
-		dataPoints: dps2
-	}]
-});
-*/
+
 var count = 20
 //setInterval(function(){chart1.update()}, 100);
 
 for (var j = 0; j < count; j++) {
 		yVal = 0
 		dps1.push({
-			x: xVal,
-			y: yVal
-		});
-		dps2.push({
 			x: xVal,
 			y: yVal
 		});
@@ -414,7 +393,9 @@ $('#videoCtrlBtn').click(function() {
 	}
 })
 // uncheck register checkbox
-$('#regiserBbox').prop('checked', false);
+$('#registerBbox').prop('checked', false);
+// uncheck recognize checkbox
+$('#recognizeCbox').prop('checked', false);
 getSubjectCount()
 getSubjectInfo()
 

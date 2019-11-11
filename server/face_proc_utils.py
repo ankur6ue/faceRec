@@ -99,7 +99,7 @@ def initDB(logger):
 def Recognize(faces, use_onnx = 1):
     # Get the Recognition model from the cache. The model takes an image and outputs an embedding vector which
     # can be compared against the data.base of embeddings.
-    FRModel = cache['onnx_FRModel']
+    FRModel = cache['FRModel']
     # embedding database
     embds_db = cache['db_embs']
     if use_onnx:

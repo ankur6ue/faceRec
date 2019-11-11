@@ -6,3 +6,6 @@ pymongo
 pillow
 pika
 rabbitmq
+requests
+onnx
+onnxruntime

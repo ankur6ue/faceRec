@@ -6,12 +6,16 @@ version="0.1"
 # read github access token from file
 input="github_token.txt"
 token=$(head -n 1 $input)
+#token = ""
 echo "$token"
+
+# stop all running containers
+docker container stop $(sudo docker ps -a -q)
 
 #-rm removes intermediate containers
 docker image build --rm --tag ${app} .
-#docker system prune
-#docker container run -t -i -d -p 5001:5000 ${app}
+docker system prune
+docker container run -t -i -d -p 5000:5000 --env MY_IPS=$(hostname) ${app}
 
 # if token exists then try to upload to github
 if [ -n "$token" ]; then

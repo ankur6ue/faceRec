@@ -152,7 +152,7 @@ def detect(proc_id, recognize, registerBbox, subjectId):
                 rec_time = end_rec - start_rec
                 object_data["rec_time"] = rec_time
 
-            if (registerBbox is 1) and (subjectId is not ""):
+            if (registerBbox is 1) and (subjectId is not "unset"):
                     crop_and_enqueue_bboxes(subjectId, frame, faces_whitened, boxes, landmarks_, cropped_size)
 
         end = timer()

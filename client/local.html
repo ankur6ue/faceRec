@@ -23,7 +23,14 @@
 		.videoContainer{
 			position: absolute;
 			top: 50px;
-			left: 60px;
+			left: 280px;
+		}
+		#chart-container{
+			position: absolute;
+			top: 550px;
+			left: 280px;
+			width: 500px;
+			height: 250px
 		}
 		.videoStyle {
 			display:block;
@@ -31,24 +38,6 @@
 			/* Mirror the local video */
 			transform: scale(-1, 1);            /*For Firefox (& IE) */
 			-webkit-transform: scale(-1, 1);     /*for Chrome & Opera (& Safari) */
-		}
-		
-		canvas{
-			position: absolute;
-			top: 50px;
-			left: 60px;
-			z-index:1;
-			pointer-events: None /* necessary for the mouse events to go to the processor listbox */
-		}
-		
-		textarea {
-			padding: 10px;
-			position: relative;
-			top: 500px;
-			line-height: 1.5;
-			border-radius: 5px;
-			border: 1px solid #ccc;
-			box-shadow: 1px 1px 1px #999;
 		}
     </style>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -109,18 +98,31 @@
 						</div>
 					</div>
 					
-					<div class="dropdown">
+					<div class="dropdown" id="subjectsDropdownList">
 					  <button class="btn btn-secondary dropdown-toggle" type="button" id="subjects" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 						Subjects
 					   <span class="caret"></span>
 					   </button>
 					   <ul class="dropdown-menu subjects" role="menu" aria-labelledby="Subjects">
-					</div>  
+					</div>
+					<p>
+
+					<div class="border">
+						<button class="btn btn-primary" type="button" id="createBtn">Add Subject</button>
+					</div>
+					<div class="border">
+						<button class="btn btn-primary" type="button" id="purgeBtn">Purge Subject</button>
+					</div>
+
+					<div class="border">
+						<button class="btn btn-primary" type="button" id="genEmbed">Generate Embedding</button>
+					</div>
+
 					<p>
 				</div>
 			</nav>
 
-			<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+			<main role="main" class="col-md-8 px-4">
 				<div id="renderer-content"></div>
 				<!--
 				 <div id="contour-content">
@@ -129,19 +131,32 @@
 			   !-->
 				<div class="videoContainer">
 					<video id="myVideo" class="videoStyle" autoplay></video>
+					<div id="drawcanvas-container" style="position: absolute; top: 0px">
+						<canvas id="drawCanvas"> </canvas>
+					</div>
 				</div>
-				<canvas id="drawCanvas"> </canvas>
-			   <!--
-			   <div id="chartContainer1" style="height: 250px; width:50%; position:relative;top: 480px"></div>
-			   !-->
-			   <div id="chart-container" style="position: relative; height:250px; width:600px; top: 500px">
-					<canvas id="chart"></canvas>
+
+
+			   <div id="chart-container">
+					<canvas id="chart" style="position: relative; top: 0px"></canvas>
 			   </div>
 				<!--
 				<select id = "ProcList" name="ProcList" size="2" style="z-index:3"></select>
 				!-->
 				<script src="local.js"></script>
 			</main>
+
+			<nav class="col-md-3 d-none d-md-block bg-light sidebar-nav-fixed">
+				<div class="sidebar-sticky">
+
+
+						<div class="form-group" >
+						  <label for="my-console">Large textarea</label>
+						  <textarea class="form-control rounded-0" id="my-console" rows="20" style="position: absolute; top: 60px; overflow: hidden;"></textarea>
+						</div>
+
+				</div>
+			</nav>
 		</div>
 	</div>	
 

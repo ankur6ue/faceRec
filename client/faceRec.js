@@ -18,7 +18,7 @@ const ovHeight = 240
 var procType = "gpu"
 var registerBbox = false
 var recognizeCbox = false
-var subjectId = "subject0"
+var subjectId = ""
 var dps1 = []; 
 var dps2 = [];// dataPoints
 // for charts:
@@ -27,6 +27,14 @@ var yVal = 100;
 var updateInterval = 1000;
 var dataLength = 20; // number of dataPoints visible at any point
 var do_face_detect = false
+var log = $("#my-console")[0]
+var activeSubjName = $('#activeSubject')[0]
+var registerImageCount = 0
+var activeSubjectId = "unset" // indicates that activeSubject is not set
+// Reset initial values
+log.value = ""
+activeSubjName.value = ""
+
 if (hostType == 'localhost')
 {
 	apiServer = "http://127.0.0.1:5000" // must be just like this. using 0.0.0.0 for the IP doesn't work! 
@@ -55,6 +63,10 @@ let imageCtx = imageCanvas.getContext("2d");
 let drawCanvas = document.getElementById('drawCanvas');
 let drawCtx = drawCanvas.getContext("2d");
 
+function UpdateScroll(log)
+{
+    log.scrollTop = log.scrollHeight
+}
 //draw boxes and labels on each detected object
 function drawBoxes(objects) {
 
@@ -116,7 +128,7 @@ function postFile(file) {
 		formdata.append("detectThreshold", detectThreshold);
 		formdata.append("recThreshold", recThreshold);
 		let xhr = new XMLHttpRequest();
-		xhr.open('POST', apiServer + '/detect/' + procType + '/' + recognizeCbox + '/' + registerBbox + '/' + subjectId, true);
+		xhr.open('POST', apiServer + '/detect/' + procType + '/' + recognizeCbox + '/' + registerBbox + '/' + activeSubjectId, true);
 		var date = new Date()
 		var send_t = date.getTime();
 		xhr.onload = function () {
@@ -131,22 +143,15 @@ function postFile(file) {
 				rec_time = object_data.rec_time*1000
 				transmission_time = recv_t - send_t - proc_time*1000
 				fps = 1.0/proc_time
-				log_text += "\n" + "FPS: " + fps
-				/*
-				dps1.push({
-					x: xVal,
-					y: proc_time*1000
-				});
-				dps2.push({
-					x: xVal,
-					y: transmission_time
-				});
-				dps1.shift();
-				dps2.shift();
-				*/
-				xVal++;
-				
-				chart1.data.labels.push(xVal);
+
+				// If in register mode, inform the user how many images have been collected
+				if (registerBbox && activeSubjectId != "unset")
+				{
+				    log.value += '\n' + 'registering image ' + ++registerImageCount + ' of subject: ' + activeSubjName.value
+				    UpdateScroll(log)
+				}
+				// Update running graphs
+				chart1.data.labels.push(++xVal);
 				chart1.data.datasets[0].data.push(proc_time*1000);
 				chart1.data.datasets[1].data.push(transmission_time);
 				chart1.data.datasets[2].data.push(rec_time);
@@ -158,10 +163,11 @@ function postFile(file) {
 				
 				if ('cpu_util' in object_data)
 				{
-					console.log(object_data['cpu_util'])
-					log_text += "\n" + "CPU Util: " + object_data['cpu_util']
+				    var txt = log.value
+				    // log.value = txt + object_data['cpu_util'] + "\n"
+				    // log.scrollTop = log.scrollHeight
 				}
-				//$("#log").val(log_text);
+
 				//draw the boxes
 				drawBoxes(object_data.objects);
 
@@ -217,7 +223,7 @@ function getSubjectCount()
 	var dbName = 'faces'
 	var collectionName = 'faces'
 	var subjectNum = 1
-	var method = rescMgmtServer + '/getCount' + '/' + dbName + '/' + collectionName + '/' + subjectNum
+	var method = rescMgmtServer + '/getCount' + '/' + subjectNum
     xhr.open('POST', method, true);
 	xhr.onload = function () {
         if (this.status === 200) {
@@ -236,17 +242,17 @@ function PopulateSubjectDropdown(subjectData)
 	{ 
 		str = "<li class='list-item ExampleCaptionDropDownListItem' data-name='" + subjectData[i].name + 
 		"' data-id=" + subjectData[i].id + ">"
-		+ "<a role='menuitem'  href='#'>" + subjectData[i].name + "</a>" + "</li>"
+		+ "<a role='menuitem'  href='#'>" + subjectData[i].name + ": " + subjectData[i].count + "</a>" + "</li>"
 		dropdown.append(str);
 	}      
 	$('.ExampleCaptionDropDownListItem').click(function(e) {
 		var target = e.currentTarget;
 		var name = target.getAttribute("data-name")
 		var id = target.getAttribute("data-id")
-		console.log(name);
-		console.log(_this.subjectId)
-		_this.subjectId = 'subjectId' + id
-		$('#activeSubject').val(name);
+		log.value += '\n' + 'new active subject: ' + name
+		UpdateScroll(log)
+		_this.activeSubjectId = 'subjectId' + id
+		$('#activeSubject')[0].value = name;
 	});
 	
 }
@@ -254,9 +260,7 @@ function PopulateSubjectDropdown(subjectData)
 function getSubjectInfo()
 {
 	let xhr = new XMLHttpRequest();
-	var dbName = 'subjects'
-	var collectionName = 'name_id_map'
-	var method = rescMgmtServer + '/getSubjectInfo' + '/' + dbName + '/' + collectionName
+	var method = rescMgmtServer + '/getSubjectInfo'
     xhr.open('POST', method, true);
 	xhr.onload = function () {
         if (this.status === 200) {
@@ -267,6 +271,53 @@ function getSubjectInfo()
 	xhr.send()
 }
 
+function createSubject(subjName)
+{
+    var this1 = this
+    let xhr = new XMLHttpRequest();
+	var method = rescMgmtServer + '/createSubject/' + subjName
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+			response = JSON.parse(this.response);
+			log.value +=  '\n' + JSON.stringify(response)
+            UpdateScroll(log)
+			// Refresh the subjectInfo listbox
+			this1.getSubjectInfo()
+		}
+	}
+	xhr.send()
+}
+
+function generateEmbedding(subjId)
+{
+    var this1 = this
+    let xhr = new XMLHttpRequest();
+	var method = rescMgmtServer + '/generateEmbedding/' + subjId + '/cpu' + '/' + 160 + '/' + 60
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+			log.value += '\n' + this.response
+			UpdateScroll(log)
+		}
+	}
+	xhr.send()
+}
+
+function purgeSubject(subjId)
+{
+    var this1 = this
+    let xhr = new XMLHttpRequest();
+	var method = rescMgmtServer + '/purgeSubject/' + subjId
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+			log.value += '\n' + this.response
+			UpdateScroll(log)
+		}
+	}
+	xhr.send()
+}
 //Starting events
 
 //check if metadata is ready - we need the video size
@@ -345,6 +396,11 @@ chart1.update();
 
 	
 var this1 = this;
+
+$('#subjectsDropdownList').on('show.bs.dropdown', function () {
+    // Refresh subject info list
+    getSubjectInfo()
+})
 $("#slider1").slider({
 	max: 1,
 	step: 0.1,
@@ -365,19 +421,35 @@ $("#slider2").slider({
 $('#registerBbox').change(function () {
 	if ($(this).prop('checked')) {
 		registerBbox = true;
-	} // enable wireframe on all models
+	}
 	else {
 		registerBbox = false;
+		// reset registerImageCount
+		registerImageCount = 0
 	}
+	activeSubjectId = 'unset'
+    // Set activeSubjectId
+    var activeSubjName = $('#activeSubject')[0].value
+    let xhr = new XMLHttpRequest();
+    var method = rescMgmtServer + '/getSubjectId/' + activeSubjName
+    xhr.open('POST', method, true);
+    xhr.onload = function () {
+        if (this.status === 200) {
+            activeSubjectId = this.response
+        }
+    }
+    xhr.send()
 })
+
 $('#recognizeCbox').change(function () {
 	if ($(this).prop('checked')) {
 		recognizeCbox = true;
-	} // enable wireframe on all models
+	}
 	else {
 		recognizeCbox = false;
 	}
 })
+
 $('#videoCtrlBtn').click(function() {
 	prevVal = this.innerHTML
 	if (prevVal == 'Play')
@@ -392,6 +464,60 @@ $('#videoCtrlBtn').click(function() {
 		do_face_detect = false;
 	}
 })
+
+$('#createBtn').click(function() {
+	subjName = $('#activeSubject').val()
+	// check to see if the value is already in the subject list, if so, don't create new subject
+	{
+		createSubject(subjName)
+	}
+})
+$('#purgeBtn').click(function() {
+    var this1 = this
+    var activeSubjName = $('#activeSubject')[0].value
+    let xhr = new XMLHttpRequest();
+	var method = rescMgmtServer + '/getSubjectId/' + activeSubjName
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+            activeSubjectId = this.response
+            if (activeSubjectId != 'unset')
+            {
+                purgeSubject(activeSubjectId)
+            }
+            else
+            {
+                log.value +=  '\n' + activeSubjName + 'not found in database'
+                UpdateScroll(log)
+            }
+		}
+	}
+	xhr.send()
+})
+
+$('#genEmbed').click(function() {
+    var this1 = this
+    var activeSubjName = $('#activeSubject')[0].value
+    let xhr = new XMLHttpRequest();
+	var method = rescMgmtServer + '/getSubjectId/' + activeSubjName
+    xhr.open('POST', method, true);
+	xhr.onload = function () {
+        if (this.status === 200) {
+            activeSubjectId = this.response
+            if (activeSubjectId != 'unset')
+            {
+                generateEmbedding(activeSubjectId)
+            }
+            else
+            {
+                log.value +=  '\n' + activeSubjName + 'not found in database'
+                UpdateScroll(log)
+            }
+		}
+	}
+	xhr.send()
+})
+
 // uncheck register checkbox
 $('#registerBbox').prop('checked', false);
 // uncheck recognize checkbox

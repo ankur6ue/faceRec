@@ -37,7 +37,7 @@ class MongoDb(object):
                 self.logger.error('Exception: %s', e.args)
                 
     def removeAll(self):
-        self.moConn.drop_database(env.MONGO_DB)
+        self.moConn.drop_database(env.MONGO_FACE_DB)
 
     def get(self, subjectId, db_name, collection):
         records = None
@@ -136,7 +136,7 @@ class RmqConsumer(object):
 
             message['image_b64'] = base64.b64encode(np.ascontiguousarray(message['image_b64']).astype('uint8'))
             if self.mongo:
-                self.mongo.insert(env.MONGO_DB, env.MONGO_COLLECTIONS, message)
+                self.mongo.insert(env.MONGO_FACE_DB, env.MONGO_FACE_COLLECTION, message)
         else:
             print("Received message")
 

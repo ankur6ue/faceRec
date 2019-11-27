@@ -1,7 +1,6 @@
 import os
 import sys
 from flask import Flask, request, Response, jsonify
-sys.path.insert(0, os.path.abspath("."))
 import config as cfg
 import cv2
 import numpy as np
@@ -16,8 +15,10 @@ import datetime
 import json
 from rmq import RmqProducer
 from mtcnn_pytorch.src.box_utils import get_image_boxes
-from face_proc_utils import initFD, initFRModel, initDB, Recognize
+from face_proc_utils import init_fd, init_fr_model, init_db, do_face_rec
 from cache import cache
+
+sys.path.insert(0, os.path.abspath("."))
 
 application = Flask(__name__)
 handler = RotatingFileHandler(cfg.LOG_FILE, maxBytes=10000, backupCount=1)
@@ -28,6 +29,7 @@ application.logger.setLevel(logging.DEBUG)
 app_logger = application.logger
 app_logger.addHandler(handler)
 rmqProd = RmqProducer(app_logger)
+
 
 # for CORS
 @application.after_request
@@ -45,20 +47,21 @@ def test():
     application.logger.info('In /test')
     return Response('MTCNN Face Detection')
 
+
 @application.route('/init')
 def init():
     application.logger.setLevel(logging.DEBUG)
     application.logger.addHandler(handler)
-    if initFD(application.logger, 'cpu') is not 0: return Response('error initializing Face Detector')
-    if initDB(application.logger) is not 0: return Response('error initializing Mongo DB Connection')
-    if initFRModel(application.logger) is not 0: return Response('error initializing Face Recognition Model')
+    if init_fd(application.logger, 'cpu') is not 0: return Response('error initializing Face Detector')
+    if init_db(application.logger) is not 0: return Response('error initializing Mongo DB Connection')
+    if init_fr_model(application.logger) is not 0: return Response('error initializing Face Recognition Model')
     return Response('successfully initialized FR system')
 
-def crop_and_enqueue_bboxes(subjectId, im_pil, faces_whitened, boxes, landmarks, cropped_size):
+
+def crop_and_enqueue_bboxes(subject_id, im_pil, faces_whitened, boxes, landmarks, cropped_size):
 
     # To show the image, undo whitening transformation img = (img - 127.5)*0.0078125
     faces = np.array(faces_whitened / 0.0078125 + 127.5).astype(np.uint8)
-    face_string = base64.b64encode(faces)
     # just save the first face
     face_ = faces[0].transpose(1, 2, 0)
     face = np.ascontiguousarray(face_)
@@ -75,7 +78,7 @@ def crop_and_enqueue_bboxes(subjectId, im_pil, faces_whitened, boxes, landmarks,
         pn.append((int)((p[i] - b[0]) * cropped_size / box_width))
         pn.append((int)((p[i + 5] - b[1]) * cropped_size / box_height))
     # for drawing
-    #for i in range(5):
+    # for i in range(5):
     #    cv2.rectangle(face, (pn[2 * i] - 2, pn[2 * i + 1] - 2), (pn[2 * i] + 2, pn[2 * i + 1] + 2), (0, 255, 0), 2)
 
     # cv2.imshow('crop', face)
@@ -83,48 +86,54 @@ def crop_and_enqueue_bboxes(subjectId, im_pil, faces_whitened, boxes, landmarks,
 
     face_record = {
         'time_stamp': datetime.datetime.now().timestamp(),
-        'subjectId': subjectId,
+        'subjectId': subject_id,
         'image_b64': np.ascontiguousarray(face_).tolist(),
         'landmarks': pn
     }
     if usingRabbit:
         rmqProd.send(json.dumps(face_record))
 
-"""
-proc_id: processor type (CPU/GPU etc)
-registerBbox: should the cropped images be saved to a database or not
-subjectId: subjectId for the test subject
-"""
-@application.route('/detect/<proc_id>/<recognize>/<registerBbox>/<subjectId>', methods=['POST'])
-def detect(proc_id, recognize, registerBbox, subjectId):
 
+@application.route('/detect/<proc_id>/<recognize>/<register_bbox>/<subject_id>', methods=['POST'])
+def detect(proc_id, recognize, register_bbox, subject_id):
+    """
+    This function implements the face detection algorithm.
+    proc_id: processor type (CPU/GPU etc)
+    register_bbox: should the cropped images be saved to a database or not
+    subject_id: subject_id for the test subject
+    """
     application.logger.setLevel(logging.DEBUG)
-    app_logger = application.logger
-
     app_logger.addHandler(handler)
-    if registerBbox == 'true':
-        registerBbox = 1
+
+    if register_bbox == 'true':
+        register_bbox = 1
     else:
-        registerBbox = 0
+        register_bbox = 0
 
     try:
         global frame_count
+        frame_count = frame_count + 1
         # record time
         start = timer()
         frame_count = frame_count + 1        
         image_file = request.files['image']  # get the image
+        # alternatively, the user can upload the image to a S3 bucket and provide the URL as a form field (eg.'s3_url').
+        # Then one can read the url using request.form.get('s3_url') and read the file using urllib and other Python
+        # file APIs.
+
+        # Read the other parameters from the form
+        detect_threshold = float(request.form.get('detect_threshold'))
+        rec_threshold = float(request.form.get('rec_threshold'))
+
+        if detect_threshold is None:
+            detect_threshold = cfg.FACE_DET_THREHOLD
+
+        # Now run the image data through the detection Neural Network
         if 'mtcnn' not in cache: # run init
             init()        
         mtcnn = cache['mtcnn']
 
-        # Set an image confidence threshold value to limit returned data
-        detectThreshold = float(request.form.get('detectThreshold'))
-        recThreshold = float(request.form.get('recThreshold'))
-
-        if detectThreshold is None:
-            detectThreshold = cfg.FACE_DET_THREHOLD
-
-        subjectInfo = cache['subjectInfo']
+        subject_info = cache['subject_info']
         objects = []
         object_data = {}
 
@@ -136,9 +145,9 @@ def detect(proc_id, recognize, registerBbox, subjectId):
             cropped_size = int(cropped_size)
         image_str = image_file.read()
         image_np = np.asarray(bytearray(image_str), dtype="uint8")
-        imageBGR = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
-        imageRGB = cv2.cvtColor(imageBGR, cv2.COLOR_BGR2RGB)
-        frame = Image.fromarray(imageRGB) # PIL Image
+        image_bgr = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        frame = Image.fromarray(image_rgb) # PIL Image
         boxes, landmarks_ = mtcnn(frame)
 
         if len(boxes) is not 0:
@@ -147,13 +156,13 @@ def detect(proc_id, recognize, registerBbox, subjectId):
             faces_whitened = get_image_boxes(boxes, frame, size=cropped_size)
             if recognize == 'true':
                 start_rec = timer()
-                dists, idxs = Recognize(faces_whitened)
+                dists, idxs = do_face_rec(faces_whitened)
                 end_rec = timer()
                 rec_time = end_rec - start_rec
                 object_data["rec_time"] = rec_time
 
-            if (registerBbox is 1) and (subjectId is not "unset"):
-                    crop_and_enqueue_bboxes(subjectId, frame, faces_whitened, boxes, landmarks_, cropped_size)
+            if (register_bbox is 1) and (subject_id is not "unset"):
+                    crop_and_enqueue_bboxes(subject_id, frame, faces_whitened, boxes, landmarks_, cropped_size)
 
         end = timer()
 
@@ -164,21 +173,21 @@ def detect(proc_id, recognize, registerBbox, subjectId):
                 conf = box[4]
                 object = {}
                 if recognize == 'true':
-                    subjIdx = idxs[count]
-                    subjDist = dists[count]
-                    recScore = float(subjDist[0])
-                    if len(subjDist) > 1:
-                        margin = subjDist[0] - subjDist[1]
+                    subj_idx = idxs[count]
+                    subj_dist = dists[count]
+                    rec_score = float(subj_dist[0])
+                    if len(subj_dist) > 1:
+                        margin = subj_dist[0] - subj_dist[1]
                     else:
                         margin = 0
-                    if recScore > recThreshold:
-                        object['id'] = subjectInfo[subjIdx[0]]['name']
+                    if rec_score > rec_threshold:
+                        object['id'] = subject_info[subj_idx[0]]['name']
                     else:
                         object['id'] = "Unknown"
-                    object['recScore'] = recScore
-                    object['recMargin'] = float(margin)
+                    object['rec_score'] = rec_score
+                    object['rec_margin'] = float(margin)
                     count = count + 1
-                if (conf > detectThreshold):
+                if conf > detect_threshold:
                     object['score'] = float(conf)
                     object['class_name'] = 'face'
                     object['x'] = float(box[0])
@@ -188,15 +197,13 @@ def detect(proc_id, recognize, registerBbox, subjectId):
 
                     landmarks = []
                     for i in range(num_landmarks):
-                        landmark = {}
+                        landmark = dict()  # if I do landmark = {}, pycharm compains..
                         landmark['x'] = float(landmark_[i])
                         landmark['y'] = float(landmark_[5+i])
                         landmarks.append(landmark)
                     object['landmarks'] = landmarks
                     objects.append(object)
-                    
-        
-        
+
         object_data["objects"] = objects
         # append host IP
         if 'MY_IPS' in os.environ:
@@ -215,10 +222,10 @@ def detect(proc_id, recognize, registerBbox, subjectId):
 
 
 if __name__ == '__main__':
-	# without SSL
-    if (os.name == 'nt'):
-        application.run(debug=True, host='0.0.0.0')#, ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
+    # without SSL
+    if os.name == 'nt':
+        application.run(debug=True, host='0.0.0.0')  # ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
     # on ubuntu run with ssl
+    # application.run(debug=True, host='0.0.0.0', ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
     else:
-#        application.run(debug=True, host='0.0.0.0', ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
         application.run(debug=True, host='0.0.0.0', port=5000)

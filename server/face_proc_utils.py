@@ -9,8 +9,10 @@ import numpy as np
 from cache import cache
 import onnx
 import onnxruntime
+
+
 # Initializes the Face Detection NN. Return 0 if success, -1 otherwise
-def initFD(logger, dev = 'cpu'):
+def init_fd(logger, dev = 'cpu'):
     try:
         device = 'cpu'
         mtcnn = MTCNN2()
@@ -21,7 +23,8 @@ def initFD(logger, dev = 'cpu'):
         logger.info('MTCNN initialization error: %e' % e)
         return -1
 
-def saveToOnnx(model):
+
+def save_to_onnx(model):
     x = torch.randn(1, 3, 160, 160, requires_grad=True)
     # Export the model
     torch.onnx.export(model,  # model being run
@@ -58,22 +61,24 @@ def saveToOnnx(model):
 
 
 # Initializes the Face Recognition NN
-def initFRModel(logger, dev = 'cpu'):
+def init_fr_model(logger, dev = 'cpu'):
     try:
         FRModel = InceptionResnetV1(pretrained='vggface2').eval().to(dev)
         # FRModel = FRModel.half()
         # onnx_FRModel = onnx.load("inception_resnet_v1.onnx")
         cache['FRModel'] = FRModel
-        # saveToOnnx(FRModel)
+        # save_to_onnx(FRModel)
         return 0
     except Exception as e:
         logger.info('Face Recognition Model initialization error: %e' % e)
         return -1
+
+
 # Initializes the MongoDB database connection, gets subject embeddings and stores the
 # embeddings in the cache. The order in which embeddings are stored are the same as the
-# subjectInfo array (see code below). This is used during recognition when the index of the
-# matching embedding is also the index of the corresponding subject in the subjectInfo array
-def initDB(logger):
+# subject_info array (see code below). This is used during recognition when the index of the
+# matching embedding is also the index of the corresponding subject in the subject_info array
+def init_db(logger):
     try:
         MONGO_URL = 'mongodb://{0}:{1}@{2}:{3}'.format(env.MONGO_ADMIN_UNAME, env.MONGO_PWORD, env.MONGO_HOST,
                                                        env.MONGO_PORT)
@@ -82,21 +87,22 @@ def initDB(logger):
         # Read all subject embeddings
         # Get all embeddings
         subjects = db_conn.moConn['subjects']['name_id_map'].find({})
-        subjectInfo = []
+        subject_info = []
         embs = torch.Tensor()
         for subject in subjects:
             if 'embedding' in subject: # not all subjects may have an embedding
-                subjectInfo.append({'name': subject['name'], 'id': subject['id']})
+                subject_info.append({'name': subject['name'], 'id': subject['id']})
                 embs = torch.cat((embs, torch.Tensor(subject['embedding']).unsqueeze(1)), 1)
         cache['db_embs'] = embs
-        cache['subjectInfo'] = subjectInfo
+        cache['subject_info'] = subject_info
         return 0
     except Exception as e:
         logger.info('DB initialization error: %e' % e)
         return -1
 
+
 # Perform face recognition
-def Recognize(faces, use_onnx = 1):
+def do_face_rec(faces, use_onnx = 1):
     # Get the Recognition model from the cache. The model takes an image and outputs an embedding vector which
     # can be compared against the data.base of embeddings.
     FRModel = cache['FRModel']
@@ -113,8 +119,8 @@ def Recognize(faces, use_onnx = 1):
         ort_outs = ort_session.run(None, ort_inputs)
         embd = torch.Tensor(ort_outs).squeeze(0)
     else:
-        faces_pt = torch.Tensor() # pt: Pytorch
-        #faces_pt = torch.HalfTensor()
+        faces_pt = torch.Tensor()  # pt: Pytorch
+        # faces_pt = torch.HalfTensor()
         # Create an Tensor of faces [numFaces x width x height x color_channels]
         for face in faces:
             face = face.transpose(1, 2, 0)
@@ -124,9 +130,7 @@ def Recognize(faces, use_onnx = 1):
         # Run through model and get embeddings [numFaces x embedding_size]
         # embd = FRModel(faces_pt)
 
-
     # compute ONNX Runtime output prediction
-
     # Compute the distance of each face embedding against embedding database [numFaces x numSubjects]
     dist = torch.mm(embd, embds_db)
     # Sort the distances, so for each detected face we can identify the best matching subject

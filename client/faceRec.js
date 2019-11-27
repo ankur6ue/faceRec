@@ -15,10 +15,12 @@ var recThreshold = s.getAttribute("data-recThreshold") || 0.8;
 const hostType = s.getAttribute("data-apiServer")
 const ovWidth = 320
 const ovHeight = 240
+
+
 var procType = "gpu"
 var registerBbox = false
 var recognizeCbox = false
-var subjectId = ""
+var subject_id = ""
 var dps1 = []; 
 var dps2 = [];// dataPoints
 // for charts:
@@ -122,19 +124,32 @@ function postFile(file) {
 
 	if (do_face_detect)
 	{
-		//Set options as form data
+		// The FormData interface provides a way to easily construct a set of key/value pairs representing form fields
+		// and their values, which can then be easily sent using the XMLHttpRequest.send() method.
+		// It uses the same format a form would use if the encoding type were set to "multipart/form-data".
+		// See https://developer.mozilla.org/en-US/docs/Web/API/FormData
 		let formdata = new FormData();
-		formdata.append("image", file);
-		formdata.append("detectThreshold", detectThreshold);
-		formdata.append("recThreshold", recThreshold);
+		formdata.append("image", file); // Image data
+		formdata.append("detectThreshold", detectThreshold); // face detection threshold
+		formdata.append("recThreshold", recThreshold); // face recognition threshold
 		let xhr = new XMLHttpRequest();
+		/*
+		procType: processor type we wish to run our system on (CPU/GPU). Cluster mgmt system can use this info to
+		     direct request to the appropriate worked node that supports requested HW
+		recognizeCbox: should we perform recognition or not
+		registerBbox: should the face crops be saved to a database for generating embeddings later. USed to register
+		     new subjects
+		activeSubjectId: the subject_id of the current subject. Used during registration.
+		*/
 		xhr.open('POST', apiServer + '/detect/' + procType + '/' + recognizeCbox + '/' + registerBbox + '/' + activeSubjectId, true);
 		var date = new Date()
 		var send_t = date.getTime();
 		xhr.onload = function () {
 			if (this.status === 200) {
 				var date = new Date()
-				var recv_t = date.getTime(); 
+				var recv_t = date.getTime();
+				// object_data is a nested dictionary of the information returned by the face detection/recognition
+				// system
 				let object_data = JSON.parse(this.response);
 				var log_text = ""
 				// console.log(object_data['server_ip'])
@@ -181,8 +196,6 @@ function postFile(file) {
 		};
 		xhr.send(formdata);
 	}
-	
-	//xhr.send();
 }
 
 //Start object detection
@@ -251,7 +264,7 @@ function PopulateSubjectDropdown(subjectData)
 		var id = target.getAttribute("data-id")
 		log.value += '\n' + 'new active subject: ' + name
 		UpdateScroll(log)
-		_this.activeSubjectId = 'subjectId' + id
+		_this.activeSubjectId = 'subject_id' + id
 		$('#activeSubject')[0].value = name;
 	});
 	
@@ -282,7 +295,7 @@ function createSubject(subjName)
 			response = JSON.parse(this.response);
 			log.value +=  '\n' + JSON.stringify(response)
             UpdateScroll(log)
-			// Refresh the subjectInfo listbox
+			// Refresh the subject_info listbox
 			this1.getSubjectInfo()
 		}
 	}
@@ -525,16 +538,3 @@ $('#recognizeCbox').prop('checked', false);
 getSubjectCount()
 getSubjectInfo()
 
-
-/*
-
-document.addEventListener("DOMContentLoaded", function() {
-	$('#ProcList').append($('<option>', {value:"cpu", text:"CPU"}));
-	$('#ProcList').append($('<option>', {value:"gpu", text:"GPU"}));
-}, false);
-
-$('#ProcList').change(function(){ 
-    procType = $(this).val();
-	
-});
-*/

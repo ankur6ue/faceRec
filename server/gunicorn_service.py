@@ -11,8 +11,8 @@ import subprocess
 # !!! You must specify this !!!
 CONFIG_NAME = 'config_resc_mgmt'
 
-
 config = importlib.import_module(CONFIG_NAME)
+
 
 def get_pid():
     if os.path.exists(config.pidfile):

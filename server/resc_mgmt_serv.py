@@ -23,6 +23,7 @@ logger.addHandler(handler)
 
 frame_count = 0
 
+
 # for CORS
 @application.after_request
 def after_request(response):
@@ -37,17 +38,31 @@ def test():
     logger.info('In /test')
     return Response('Resource Mgmt Server Running')
 
-@application.route('/generateEmbedding/<subjectId>/<device>/<int:image_size>/<int:N>', methods=['POST'])
-def generateEmbedding(subjectId, device, image_size, N):
+
+@application.route('/generate_embedding/<subject_id>/<device>/<int:image_size>/<int:n>', methods=['POST'])
+def generate_embedding(subject_id, device, image_size, n):
+    """
+    Generates an average embedding vector by passing last n images of the subject corresponding to
+    subject_id through an inceptionResnet. This vector is stored in the subjects collection and
+    used during face recognition
+    :param subject_id: subject id (1,2,3 etc)
+    :param device: (CPU/GPU, not used for now)
+    :param image_size: size to which each crop is resized before passing through the inceptionResnet
+    network
+    :param n: number of images to use. If the number of images for the subject is less than this
+    number, an error will be returned
+    :return: message indicating whether embedding was created successfully or some error
+    was encountered
+    """
     if cache['mongo']:
         db_obj = cache['mongo']
-        connObj = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
-        numDocs = connObj.count_documents({"subjectId": subjectId})
-        if (numDocs < N):
+        conn_obj = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
+        num_docs = conn_obj.count_documents({"subjectId": subject_id})
+        if num_docs < n:
             return Response('Insufficient number of images of subject: {0}.\
-                            {1} found, {2} needed'.format(subjectId, numDocs, N))
+                            {1} found, {2} needed'.format(subject_id, num_docs, n))
         # Last N records
-        face_records = connObj.find({'subjectId': subjectId}).skip(numDocs - N)
+        face_records = conn_obj.find({'subjectId': subject_id}).skip(num_docs - n)
         resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
         count = 0
         pil_images = []
@@ -73,97 +88,124 @@ def generateEmbedding(subjectId, device, image_size, N):
             whitened = torch.stack(whitened).to(device)
             embeddings = resnet(whitened)
             em_mean = torch.mean(embeddings, 0)
-            _, subjNum = subjectId.split('subjectId')  # to get the number of subject (2, 3 etc)
-            db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION].update({'id': subjNum},
-                                                             {"$set": {"embedding": em_mean.numpy().tolist()}})
+            db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION].update({'id': subject_id},
+                                                     {"$set": {"embedding": em_mean.numpy().tolist()}})
             return Response('Embedding successfully created')
     return Response('Error connecting to mongo database')
 
 
-@application.route('/getSubjectId/<subjName>', methods=['POST'])
-def getSubjectId(subjName):
+@application.route('/get_subject_id/<subj_name>', methods=['POST'])
+def get_subject_id(subj_name):
+    """
+    Takes a subject name (eg: Ankur Mohan) and returns the corresponding id
+    (0, 1 etc)
+    :param subj_name: 
+    :return: subject id if the subject name is found in the database, 'unset' otherwise
+    """
     if cache['mongo']:
         db_obj = cache['mongo']
         # First remove from the subjects database
         col_obj = db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION]
-        document = col_obj.find_one({"name": re.compile(subjName, re.IGNORECASE)})
+        document = col_obj.find_one({"name": re.compile(subj_name, re.IGNORECASE)})
         if document is None:  # subj Doesn't exist, create new subject
             # no id found
             return Response('unset')
-        return Response('subjectId{0}'.format(document['id']))
+        return Response(document['id'])
     return Response('Error connecting to mongo database')
 
-@application.route('/purgeSubject/<subjectId>', methods=['POST'])
-def purgeSubject(subjectId):
+
+@application.route('/purge_subject/<subject_id>', methods=['POST'])
+def purge_subject(subject_id):
+    """
+    Removes the documents corresponding to subject_id from the faces and subject collections
+    :param subject_id: 
+    :return: number of records removed
+    """
     if cache['mongo']:
         db_obj = cache['mongo']
         # First remove from the subjects database
         col_obj = db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION]
-
-        # extract number from subjectId
-        _, subjNum = subjectId.split('subjectId')  # to get the number of subject (2, 3 etc)
-        res1 = col_obj.delete_many({'id': subjNum})
+        col_obj.delete_many({'id': subject_id})
 
         # Also clean any images of this subject from the faces database
         col_obj = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
-        res2 = col_obj.delete_many({'subjectId': subjectId})
-        res_str = 'removed {0} records for subjectId: {1}'.format(res2.deleted_count, subjectId)
+        res2 = col_obj.delete_many({'subjectId': subject_id})
+        res_str = 'removed {0} records for subjectId: {1}'.format(res2.deleted_count, subject_id)
         return Response(res_str)
     return Response('Error connecting to mongo database')
 
-@application.route('/getCount/<int:subjectId>', methods=['POST'])
-def getCount(subjectId):
+
+@application.route('/get_count/<subject_id>', methods=['POST'])
+def get_count(subject_id):
+    """
+    Returns the number of images for subject_id
+    :param subject_id:
+    :return: Number of images
+    """
     if cache['mongo']:
-        # convert to string because subjectIds are stored as subjectId1, subjectId2 etc in the database
-        subjectIdStr = 'subjectId{0}'.format(subjectId)
         db_obj = cache['mongo']
         col_obj = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
         # if collection doesn't exist, count will be 0 but code wouldn't crash
-        count = col_obj.count_documents({"subjectId": subjectIdStr})
-        return(jsonify({'subjectId': subjectId, 'count': count}))
+        count = col_obj.count_documents({"subjectId": subject_id})
+        return jsonify({'subjectId': subject_id, 'count': count})
     return Response('Error connecting to mongo database')
 
-@application.route('/getSubjectInfo', methods=['POST'])
-def getSubjectInfo():
+
+@application.route('/get_subject_info', methods=['POST'])
+def get_subject_info():
+    """
+    Returns all subject names along with their id and the number of images for 
+    each subject
+    :return: array of subject name, id and number of images
+    key value pairs in JSON format
+    """
     if cache['mongo']:
         db_obj = cache['mongo']
         col_obj = db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION]
+        col_obj_faces = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
         cursor = col_obj.find({})
         documents = []
         for document in cursor:
             # for each document get the number of images stored
-            col_obj_faces = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
-            # convert 0 to subject0 etc.
-            subjectIdStr = 'subjectId{0}'.format(document['id'])
-            count = col_obj_faces.count_documents({"subjectId": subjectIdStr})
-            documents.append({'name': document['name'], 'id': document['id'], 'count': count})
-        return(jsonify(documents))
+            subject_id = document['id']
+            count = col_obj_faces.count_documents({"subjectId": subject_id})
+            documents.append({'name': document['name'], 'id': subject_id, 'count': count})
+        return jsonify(documents)
     return Response('Error connecting to mongo database')
 
 
-@application.route('/createSubject/<subjName>', methods=['POST'])
-def createSubject(subjName):
+@application.route('/create_subject/<subj_name>', methods=['POST'])
+def create_subject(subj_name):
+    """
+    Creates entries in the subject and faces collections corresponding to subj_name
+    :param subj_name:
+    :return: If subject already exists, returns key-value pair
+    {'type': 'exists', 'name': document['name'], 'id': document['id'], 'count': count}
+    in JSON format
+    if not, creates a new subject entry and returns
+    {'type': 'new', 'name': subj_name, 'id': max_id} in JSON format
+    """
     if cache['mongo']:
         db_obj = cache['mongo']
         col_obj = db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION]
         # do case insensitive search
-        document = col_obj.find_one({"name": re.compile(subjName, re.IGNORECASE)})
+        document = col_obj.find_one({"name": re.compile(subj_name, re.IGNORECASE)})
         if document is None: # subj Doesn't exist, create new subject
             # get the current maximum id
             max_id = col_obj.find_one(sort=[("id", -1)])["id"]
             max_id = int(max_id) + 1
-            col_obj.insert_one({'name': subjName, 'id': str(max_id)})
-            return jsonify({'type': 'new', 'name': subjName, 'id': max_id})
+            col_obj.insert_one({'name': subj_name, 'id': str(max_id)})
+            return jsonify({'type': 'new', 'name': subj_name, 'id': max_id})
         else:
             # find how many images of this subject we already have
             col_obj_faces = db_obj.moConn[env.MONGO_FACE_DB][env.MONGO_FACE_COLLECTION]
-            subjectIdStr = 'subjectId{0}'.format(document['id'])
-            count = col_obj_faces.count_documents({"subjectId": subjectIdStr})
+            subject_id = document['id']
+            count = col_obj_faces.count_documents({"subjectId": subject_id})
             return jsonify({'type': 'exists', 'name': document['name'], 'id': document['id'], 'count': count})
     return Response('Error connecting to mongo database')
 
-def init():
 
+def init():
     try:
         # connect with mongodb
         mongo_url = 'mongodb://{0}:{1}@{2}:{3}'.format(env.MONGO_ADMIN_UNAME, env.MONGO_PWORD, env.MONGO_HOST,
@@ -174,12 +216,17 @@ def init():
         application.logger.info('Successfully initialized database: subjects')
     except Exception as e:
         logger.error('Exception: %s', e.args)
+
+
+# needed to run automatically from the gunicorn_service.py. Probably
+# much better ways to do this..
 init()
+
 
 if __name__ == '__main__':
     # without SSL
     init()
-    if (os.name == 'nt'):
+    if os.name == 'nt':
         application.run(debug=True, host='0.0.0.0')  # , ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
     # on ubuntu run with ssl
     else:

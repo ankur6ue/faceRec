@@ -1,0 +1,19 @@
+kind: Service
+apiVersion: v1
+metadata:
+  # Unique key of the Service instance
+  name: facerec-interface
+spec:
+  ports:
+    # Accept traffic sent to port 80
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  selector:
+    # Loadbalance traffic across Pods matching
+    # this label selector
+    run: facerec
+  # Create an HA proxy in the cloud provider
+  # with an External IP address - *Only supported
+  # by some cloud providers*
+  type: LoadBalancer

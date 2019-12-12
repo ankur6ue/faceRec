@@ -6,7 +6,17 @@ def create_instances(image_id, instance_type, security_group, key_name, num_inst
     global ec2
     instances = ec2.create_instances(ImageId=image_id, InstanceType=instance_type,
                                      SecurityGroups=security_group, KeyName=key_name, MinCount=1,
-                                     MaxCount=num_instances)
+                                     MaxCount=num_instances, TagSpecifications=[
+                                         {
+                                             'ResourceType': 'instance',
+                                             'Tags': [
+                                                 {
+                                                     'Key': 'instance-type',
+                                                     'Value': 'compute-node'
+                                                 }
+                                             ]
+                                         }
+                                     ])
     for instance in instances:
         instance.wait_until_running()
         # see this: https://stackoverflow.com/questions/52466933/public-ip-address-of-ec2-instance-is-none-while-the-instance-is-initializing
@@ -15,7 +25,7 @@ def create_instances(image_id, instance_type, security_group, key_name, num_inst
 
     return instances
 
-def write_cluster_ip_conf(cluster_ip_conf_path, instances):
+def write_cluster_ip_conf(cluster_ip_conf_path, instances, port=5000):
     file = open(cluster_ip_conf_path, 'w')
     file.write('\nHeader add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED')
     file.write('\n<Proxy balancer://mycluster>')
@@ -23,7 +33,7 @@ def write_cluster_ip_conf(cluster_ip_conf_path, instances):
     for instance in instances:
         count = count + 1
         file.write('\n\t# server {0}\n\
-        BalancerMember http://{1}:5000'.format(count, instance.public_ip_address))
+        BalancerMember http://{1}:{2}'.format(count, instance['public_ip_address'], port))
     file.write('\nProxySet stickysession=ROUTEID')    
     file.write('\n</Proxy>')
     file.close()

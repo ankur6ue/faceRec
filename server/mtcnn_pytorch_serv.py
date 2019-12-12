@@ -17,10 +17,14 @@ from rmq import RmqProducer
 from mtcnn_pytorch.src.box_utils import get_image_boxes
 from face_proc_utils import init_fd, init_fr_model, init_db, do_face_rec
 from cache import cache
+import prometheus_client
+from prometheus_metrics import setup_metrics
 
 sys.path.insert(0, os.path.abspath("."))
 
 application = Flask(__name__)
+CONTENT_TYPE_LATEST = str('text/plain; version=0.0.4; charset=utf-8')
+setup_metrics(application)
 handler = RotatingFileHandler(cfg.LOG_FILE, maxBytes=10000, backupCount=1)
 frame_count = 0
 
@@ -212,7 +216,7 @@ def detect(proc_id, recognize, register_bbox, subject_id):
         object_data["proc_end_time"] = end
 
         if frame_count % 5 == 0:
-            object_data["cpu_util"] = psutil.cpu_percent()
+            object_data["cpu_util"] = 0 #psutil.cpu_percent()
 
         return jsonify(object_data)
 
@@ -220,6 +224,9 @@ def detect(proc_id, recognize, register_bbox, subject_id):
         app_logger.error('Exception: %s', e.args)
         return e
 
+@application.route('/metrics')
+def metrics():
+    return Response(prometheus_client.generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 if __name__ == '__main__':
     # without SSL
@@ -228,4 +235,4 @@ if __name__ == '__main__':
     # on ubuntu run with ssl
     # application.run(debug=True, host='0.0.0.0', ssl_context=(cfg.SSL_CRT, cfg.SSL_KEY))
     else:
-        application.run(debug=True, host='0.0.0.0', port=5000)
+        application.run(debug=True, host='0.0.0.0', port=5001)

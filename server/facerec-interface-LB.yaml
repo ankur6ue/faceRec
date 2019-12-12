@@ -2,15 +2,17 @@ kind: Service
 apiVersion: v1
 metadata:
   # Unique key of the Service instance
-  name: facerec-interface
+  name: facerec-interface-lb
   labels:
-    run: facerec-interface
+    run: facerec-interface-lb
 spec:
   ports:
     # Accept traffic sent to port 80
     - protocol: TCP
-      port: 5000
+      port: 80
+      targetPort: 5000
   selector:
     # Loadbalance traffic across Pods matching
     # this label selector
     run: facerec
+  type: LoadBalancer

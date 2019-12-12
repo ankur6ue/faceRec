@@ -24,6 +24,8 @@ RUN echo "deb https://dl.bintray.com/rabbitmq/debian xenial main" | \
 RUN apt-get update && \
     apt-get install rabbitmq-server -y --fix-missing
 
+RUN apt-get install nano
+
 RUN pip3 install -r /requirements.txt \
     && pip3 install torch==1.3.0+cpu torchvision==0.4.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
 

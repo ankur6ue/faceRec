@@ -131,6 +131,8 @@ var Client = (function () {
                 if (this.status === 200) {
                     let date = new Date()
                     let recv_t = date.getTime();
+                    let fps = 1000.0/(recv_t - send_t)
+                    console.log(fps)
                      // object_data is a nested dictionary of the information returned by the face detection/recognition
                     // system
                     let object_data = JSON.parse(this.response)

@@ -159,6 +159,7 @@ def get_subject_info():
     :return: array of subject name, id and number of images
     key value pairs in JSON format
     """
+    print('handling request: get_subject_info')
     if cache['mongo']:
         db_obj = cache['mongo']
         col_obj = db_obj.moConn[env.MONGO_SUBJECTS_DB][env.MONGO_SUBJECTS_COLLECTION]
@@ -192,8 +193,15 @@ def create_subject(subj_name):
         document = col_obj.find_one({"name": re.compile(subj_name, re.IGNORECASE)})
         if document is None: # subj Doesn't exist, create new subject
             # get the current maximum id
-            max_id = col_obj.find_one(sort=[("id", -1)])["id"]
-            max_id = int(max_id) + 1
+            # can't do this because mongo will sort by string which returns incorrect results
+            # max_id = col_obj.find_one(sort=[("id", -1)])["id"]
+            # do brute force for now
+            cursor = col_obj.find({})
+            max_id = 0
+            for document in cursor:
+                max_id = max(max_id, int(document['id']))
+
+            max_id = max_id + 1
             col_obj.insert_one({'name': subj_name, 'id': str(max_id)})
             return jsonify({'type': 'new', 'name': subj_name, 'id': max_id})
         else:

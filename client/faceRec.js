@@ -157,8 +157,8 @@ function postFile(file) {
 				proc_time = object_data.proc_end_time - object_data.proc_start_time
 				rec_time = object_data.rec_time*1000
 				transmission_time = recv_t - send_t - proc_time*1000
-				fps = 1.0/proc_time
-
+				fps = 1000.0/(recv_t - send_t)
+                console.log(fps)
 				// If in register mode, inform the user how many images have been collected
 				if (registerBbox && activeSubjectId != "unset")
 				{

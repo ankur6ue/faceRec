@@ -19,9 +19,13 @@ prune_container = 'docker system prune -f'
 run_container = 'docker container run -t -i -d -p 5000:5000 ' + '--env "MY_IPS=$(hostname)" ' + cfg.ec2_cluster_cfg['container_name']
 cmd = login_github + ';' + stop_container + ';' + prune_container + ';' + pull_container + ';' + run_container
 
-# check if a EC2 instances is already running, if not create an instance
+instance_filters = [{'Name': 'instance-type', 'Values': ['t2.micro']},
+                    {'Name': 'tag:instance-type', 'Values': ['compute-node']}]
+
+# check if a EC2 instances is already running, if not create an instance. Only consider instances with the
+# 'compute-node' tag.
 running_instances = ec2.instances.filter(
-    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}, {'Name': 'instance-type', 'Values': ['t2.micro']}])
+    Filters=[{'Name': 'instance-state-name', 'Values': ['running']}] + instance_filters)
 # create list of instances
 running_instance_list = [instance for instance in running_instances]
 num_running_instances = len(running_instance_list)
@@ -33,31 +37,31 @@ else:
     num_instances_needed = num_instances - num_running_instances
     # if we don't have enough running instances, check if there are any stopped instances
     stopped_instances = ec2.instances.filter(
-        Filters=[{'Name': 'instance-state-name', 'Values': ['stopped']}, {'Name': 'instance-type', 'Values': ['t2.micro']}])
+        Filters=[{'Name': 'instance-state-name', 'Values': ['stopped']}] + instance_filters)
     # create list of instances
     stopped_instance_list = [instance for instance in stopped_instances]
-    stopped_instance_ids = [instance.id for instance in stopped_instances]
-    num_stopped_instances = len(stopped_instance_list)
-    stopped_instance_ids = stopped_instance_ids[0:min(num_stopped_instances, num_instances_needed)]
-    # start the stopped instances and add to running instances list
-    ec2_client.start_instances(InstanceIds=stopped_instance_ids)
-    # checking for instance_status_ok is more reliable than instance_ready
-    # because the instance is sure to be ready. If we only wait for instance_ready
-    # ssh can sometimes fail. 
-    waiter = ec2_client.get_waiter('instance_status_ok')
-    waiter.wait(InstanceIds=stopped_instance_ids, WaiterConfig={
-        'Delay': 5,
-        'MaxAttempts': 1000
-    })
-    # now all instances should be running
-    running_instances = ec2.instances.filter(
-        Filters=[{'Name': 'instance-state-name', 'Values': ['running']},
-                 {'Name': 'instance-type', 'Values': ['t2.micro']}])
-    # create list of instances
-    running_instance_list = [instance for instance in running_instances]
-    num_running_instances = len(running_instance_list)
+    if len(stopped_instance_list) > 0:
+        stopped_instance_ids = [instance.id for instance in stopped_instances]
+        num_stopped_instances = len(stopped_instance_list)
+        stopped_instance_ids = stopped_instance_ids[0:min(num_stopped_instances, num_instances_needed)]
+        # start the stopped instances and add to running instances list
+        ec2_client.start_instances(InstanceIds=stopped_instance_ids)
+        # checking for instance_status_ok is more reliable than instance_ready
+        # because the instance is sure to be ready. If we only wait for instance_ready
+        # ssh can sometimes fail.
+        waiter = ec2_client.get_waiter('instance_status_ok')
+        waiter.wait(InstanceIds=stopped_instance_ids, WaiterConfig={
+            'Delay': 5,
+            'MaxAttempts': 1000
+        })
+        # now all instances should be running
+        running_instances = ec2.instances.filter(
+            Filters=[{'Name': 'instance-state-name', 'Values': ['running']}] + instance_filters)
+        # create list of instances
+        running_instance_list = [instance for instance in running_instances]
+        num_running_instances = len(running_instance_list)
 
-    num_running_instances = len(running_instance_list)
+        num_running_instances = len(running_instance_list)
     if num_running_instances >= num_instances: # we have enough running instances, we can run the container
         for instance in running_instances:
             exec_shell_command(instance.public_ip_address, cfg, cmd)
@@ -65,7 +69,9 @@ else:
     # otherwise, create new instances and run command
     else:
         instances = create_instances(cfg.ec2_cluster_cfg['ami_id'], cfg.ec2_cluster_cfg['instance_type'], \
-                                     [cfg.ec2_cluster_cfg['sec_grp']], cfg.ec2_cluster_cfg['key_pair'], num_instances - num_running_instances )
+                                     [cfg.ec2_cluster_cfg['sec_grp']], cfg.ec2_cluster_cfg['key_pair'],
+                                     num_instances - num_running_instances)
+
         # print properties
         for instance in instances:
             print(instance.id, instance.instance_type, instance.public_ip_address)
